@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QFileDialog
 from app.base.model import ModelBase
 from app.base.view import ViewBase
 from app.base.controller import ControllerBase
@@ -272,24 +272,16 @@ class TestController(ControllerBase):
         フォルダ選択ダイアログを開き、選択されたフォルダのパスを返す。
         """
     
-        # メインウィンドウを作成し、非表示にする
-        root = tk.Tk()
-        root.withdraw()
-      
-        # 1. ダイアログが最初に開く場所（=現在開いたフォルダ）を定義
-        # initial_folder = os.getcwd()
         initial_folder = self.selected_path
-        # print(f"ダイアログを '{initial_folder}' で開きます...")
+        dialog = QFileDialog()
+        dialog.setFileMode(QFileDialog.Directory)
+        dialog.setOption(QFileDialog.ShowDirsOnly, True)
+        dialog.setWindowTitle("フォルダを選択してください")
+        if initial_folder:
+            dialog.setDirectory(str(initial_folder))
 
-        # 2. initialdir を指定してダイアログを開く
-        _selected_path = filedialog.askdirectory(
-            title="フォルダを選択してください",
-            initialdir=initial_folder
-        )
-    
-        # 3. 戻り値をチェック
-        if _selected_path:
-            # フォルダが選択された場合
+        if dialog.exec_() == QFileDialog.Accepted:
+            _selected_path = dialog.selectedFiles()[0]
             print("OKが押されました。")
             time = datetime.now().strftime("%Y%m%d%H%M%S")
             folder_name = time + '_' + self.view.textEdit_memo.toPlainText()
@@ -301,11 +293,8 @@ class TestController(ControllerBase):
                 return folder_path
             else:
                 return _selected_path
-        else:
-            # キャンセルが押された場合 (selected_path == "")
-            print("キャンセルが押されました。")
-            # 保持しておいた「最初に開いた場所」のパスを返す
-            return initial_folder
+        print("キャンセルが押されました。")
+        return initial_folder
 
     
     def make_dir(self, folder_path):
