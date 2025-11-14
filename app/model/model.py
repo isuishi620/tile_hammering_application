@@ -104,7 +104,7 @@ class Model(ModelBase):
         self.gmm_pipeline = gmm(self)
         self.gmm_is_infering: bool = False
         self.gmm_pretrained: bool = False
-        self.gmm_calibrated: bool = False
+        self.gmm_trained: bool = False
         self.pretrain_score_mean: float = 0.0
         self.pretrain_score_std: float = 1.0
         self.train_score_mean: float = 0.0
@@ -124,8 +124,8 @@ class Model(ModelBase):
         # ===[ 異常値 ]===
         self._anomaly_threshold = None
 
-        # ===[ rub 閾値 ]===
-        self.rub_thresholded: bool = False
+        # ===[ rub pre-training/training status ]===
+        self.rub_pretrained: bool = False
         self.rub_trained: bool = False
         self.rub_train_data = np.empty((0, 0))
 

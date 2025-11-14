@@ -51,7 +51,7 @@ class TestController(ControllerBase):
         if self.model.thresholded:
             self.sw_tapping = True
             self._set_tapping()
-        elif self.model.rub_thresholded:
+        elif self.model.rub_trained:
             self.sw_tapping = False
             self._set_tapping()
         else:
@@ -125,7 +125,7 @@ class TestController(ControllerBase):
                 self.model.trigger.stop()
                 self.remove_trigger_method(self.handle_test_data)
         else:
-            if not self.model.rub_thresholded:
+            if not self.model.rub_trained:
                 self.view.error('rub 未学習です')
                 self.view.pushButton_stop.setEnabled(False)
                 self.view.pushButton_stop.setStyleSheet("background-color: grey;")
@@ -203,14 +203,14 @@ class TestController(ControllerBase):
         # ===[ rub testを選択 ]===
         else:
             self.view.pushButton_Tapping.setStyleSheet("background-color: grey;")
-            if self.model.rub_thresholded:
+            if self.model.rub_trained:
                 self.view.pushButton_Rubbing.setStyleSheet("background-color: rgb(0, 85, 255);")
                 self.view.pushButton_play.setEnabled(True)
                 self.view.pushButton_play.setStyleSheet("background-color: rgb(0, 85, 255);")
                 low, medium, _ = self.model.rub_threshold_bands
                 self.view.threshold(low, medium)
             else:
-                print(f"{self.model.rub_thresholded=} rub 未学習")
+                print(f"{self.model.rub_trained=} rub 未学習")
                 self.view.error('rub 未学習。')
                 self.view.pushButton_play.setEnabled(False)
                 self.view.pushButton_stop.setEnabled(False)
@@ -240,7 +240,7 @@ class TestController(ControllerBase):
     def handle_rub_inference(self):
         if not (self.model.audio_is_stream and self.model.curl_window == 2):
             return
-        if self.sw_tapping or not self.model.gmm_is_infering or not self.model.rub_thresholded:
+        if self.sw_tapping or not self.model.gmm_is_infering or not self.model.rub_trained:
             return
         block = getattr(self.model, "block_data", None)
         if block is None or getattr(block, "size", 0) == 0:

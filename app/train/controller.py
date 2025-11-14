@@ -188,7 +188,7 @@ class TrainController(ControllerBase):
         if self.model.rub_session.is_active():
             self.view.error('Audio capture is already active.')
             return
-        if self.model.rub_trained:
+        if self.model.rub_pretrained:
             if not self.view.confirm('Remove existing rub training data?'):
                 return
             self._reset_rub_learning()
@@ -207,18 +207,18 @@ class TrainController(ControllerBase):
         if self.model.rub_session.is_active():
             self.view.error('Audio capture is already active.')
             return
-        if not self.model.rub_trained:
-            self.view.error('Complete rub training first.')
+        if not self.model.rub_pretrained:
+            self.view.error('Complete rub pre-training first.')
             return
-        if self.model.rub_thresholded:
+        if self.model.rub_trained:
             if not self.view.confirm('Remove existing rub threshold data?'):
                 return
 
-        self.model.rub_thresholded = False
+        self.model.rub_trained = False
         self.model.set_rub_threshold_elapsed(0.0)
         self.view.lcdNumber_RubTHSampleTimes.display(0)
         self._start_rub_capture(RubPhase.TRAIN, self.model.rub_threshold_duration_sec)
-        self.view.label_RubFinish.setText('-calibrating-')
+        self.view.label_RubFinish.setText('-training-')
         self.view.label_RubFinish.setStyleSheet('background-color: rgb(0, 85, 255); color: white;')
 
 
@@ -290,7 +290,7 @@ class TrainController(ControllerBase):
 
     # pushButton_StartTest
     def _set_start_test(self):
-        if self.model.rub_thresholded or self.model.thresholded:
+        if self.model.rub_trained or self.model.thresholded:
             self.view.pushButton_StartTest.setEnabled(True)
             self.view.pushButton_StartTest.setStyleSheet("background-color: rgb(0, 85, 255);")
         else:
@@ -343,6 +343,7 @@ class TrainController(ControllerBase):
         worker.failed.connect(self._handle_fit_failed)
         worker.finished.connect(self._clear_gmm_worker)
         self._gmm_fit_worker = worker
+        self.view.show_popup('GMM pre-training is running...')
         worker.start()
 
     def _on_pretrain_fit_done(self, frames):
@@ -352,11 +353,11 @@ class TrainController(ControllerBase):
             return
         self.model.pretrain_score_mean = float(np.mean(scores))
         self.model.pretrain_score_std = float(np.std(scores) + 1e-8)
-        self.model.rub_trained = True
+        self.model.rub_pretrained = True
         self._update_rub_finish_label()
 
     def _finish_rub_training(self, frames):
-        if not self.model.rub_trained:
+        if not self.model.rub_pretrained:
             self.view.error('Pre-training has not finished yet.')
             return
         scores = self._compute_rub_scores(frames)
@@ -370,13 +371,16 @@ class TrainController(ControllerBase):
         sigma2 = self.model.train_score_mean + 2 * self.model.train_score_std
         sigma3 = self.model.train_score_mean + 3 * self.model.train_score_std
         self.model.set_rub_threshold_bands(sigma1, sigma2, sigma3)
-        self.model.rub_thresholded = True
+        self.model.rub_trained = True
+        self.model.gmm_trained = True
         self._update_rub_finish_label()
 
     def _handle_fit_failed(self, message: str):
+        self.view.close_popup()
         self.view.error(f'GMM fitting failed: {message}')
 
     def _clear_gmm_worker(self):
+        self.view.close_popup()
         if self._gmm_fit_worker is not None:
             self._gmm_fit_worker.deleteLater()
             self._gmm_fit_worker = None
@@ -397,8 +401,9 @@ class TrainController(ControllerBase):
     def _reset_rub_learning(self):
         if self.model.rub_session.is_active():
             self.model.stop_rub_collection()
+        self.model.rub_pretrained = False
         self.model.rub_trained = False
-        self.model.rub_thresholded = False
+        self.model.gmm_trained = False
         self.model.pretrain_score_mean = 0.0
         self.model.pretrain_score_std = 1.0
         self.model.train_score_mean = 0.0
@@ -413,10 +418,10 @@ class TrainController(ControllerBase):
         self._set_start_test()
 
     def _update_rub_finish_label(self):
-        if self.model.rub_thresholded:
+        if self.model.rub_trained:
             self.view.label_RubFinish.setText('-finish-')
             self.view.label_RubFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: red;")
-        elif self.model.rub_trained:
+        elif self.model.rub_pretrained:
             self.view.label_RubFinish.setText('-pretrained-')
             self.view.label_RubFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: yellow;")
         else:

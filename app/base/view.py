@@ -13,6 +13,7 @@ class ViewBase(QWidget):
     def __init__(self, ui_path):
         super().__init__()
         self.ui = uic.loadUi(ui_path, self)
+        self._popup_dialog = None
         self._connect_buttons()
 
     def error(self, error: str) -> None:
@@ -51,6 +52,22 @@ class ViewBase(QWidget):
         self._center_dialog(dialog)
         response = dialog.exec_()
         return response == QMessageBox.Yes
+
+    def show_popup(self, message: str, title: str = "Processing"):
+        if self._popup_dialog is None:
+            dialog = QMessageBox(self)
+            dialog.setIcon(QMessageBox.Information)
+            dialog.setWindowTitle(title)
+            dialog.setStandardButtons(QMessageBox.NoButton)
+            self._popup_dialog = dialog
+        self._popup_dialog.setText(message)
+        self._popup_dialog.show()
+
+    def close_popup(self):
+        if self._popup_dialog is not None:
+            self._popup_dialog.close()
+            self._popup_dialog.deleteLater()
+            self._popup_dialog = None
     
     def _center_dialog(self, dialog):
         parent_center = self.mapToGlobal(self.rect().center())
