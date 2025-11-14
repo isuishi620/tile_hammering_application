@@ -35,7 +35,6 @@ class TestView(ViewBase):
     def _set_graphicsView_Data(self):
         self.anomaly_plot = self.graphicsView_Data.addPlot(row=0, col=0)
         self.graphicsView_Data_2 = self.graphicsView_Data.addPlot(row=0, col=1)
-        self.graphicsView_Data_2.setYLink(self.anomaly_plot)
 
         self.graphicsView_Data.ci.layout.setColumnStretchFactor(0, 10)
         self.graphicsView_Data.ci.layout.setColumnStretchFactor(1, 1)
@@ -51,6 +50,7 @@ class TestView(ViewBase):
         self.anomaly_plot.addItem(self.scatter)
         self.anomaly_plot.enableAutoRange('y', True)
         self.anomaly_plot.setMouseEnabled(x=False, y=True)
+        self.anomaly_plot.sigRangeChanged.connect(self._sync_bar_range)
 
         self.graphicsView_Data_2.setLabel('bottom', ' ')
         self.graphicsView_Data_2.hideAxis('left')
@@ -72,7 +72,7 @@ class TestView(ViewBase):
             self.scatter.clear()
             return
 
-        last = data[-n_points:] 
+        last = data[-n_points:]
         start_idx = len(data) - len(last)
         xs = np.arange(start_idx, start_idx + len(last), dtype=float)
 
@@ -94,6 +94,7 @@ class TestView(ViewBase):
             self.anomaly_plot.setXRange(xs[0] - 1, xs[0] + 1, padding=0)
         else:
             self.anomaly_plot.setXRange(xs.min() - 0.5, xs.max() + 0.5, padding=0)
+        self._sync_bar_range()
 
     def plot_rub_anomaly_scatter(self, indices, scores, colors):
         if not indices or not scores:
@@ -105,16 +106,43 @@ class TestView(ViewBase):
             self.anomaly_plot.setXRange(indices[0] - 1, indices[0] + 1, padding=0)
         else:
             self.anomaly_plot.setXRange(min(indices) - 0.5, max(indices) + 0.5, padding=0)
+        self._sync_bar_range()
 
 
-    def threshold(self, low, medium):
-        max = medium * 10
-        self.blue_bar_2_2.setOpts(height=[low], y0=[0])        
-        
+    def threshold(self, low, medium, high=None):
+        max_value = high if high is not None else medium
+        max_value = max(max_value, medium, low)
+        min_value = min(low, 0.0)
+
+        self._current_threshold_levels = (low, medium, max_value)
+        self._sync_bar_range()
+
+    def _sync_bar_range(self, *_):
+        low, medium, high = getattr(self, "_current_threshold_levels", (0.0, 0.0, 1.0))
+
+        view_range = self.anomaly_plot.viewRange()
+        if view_range:
+            _, y_range = view_range
+            y_min = min(low, y_range[0])
+            y_max = max(high, y_range[1])
+        else:
+            y_min = min(low, 0.0)
+            y_max = max(high, y_min + 1.0)
+
+        if y_max <= y_min:
+            y_max = y_min + 1.0
+
+        # Update bar plot range
+        self.graphicsView_Data_2.setYRange(y_min, y_max, padding=0)
+
+        # Update bar heights aligned to current view
+        blue_height = low - y_min if low > y_min else 0
+        self.blue_bar_2_2.setOpts(height=[blue_height], y0=[y_min])
+
         yellow_height = medium - low if medium > low else 0
         self.yellow_bar_2_2.setOpts(height=[yellow_height], y0=[low])
-        
-        red_height = max - medium if medium < max else 0  
+
+        red_height = y_max - medium if y_max > medium else 0
         self.red_bar_2_2.setOpts(height=[red_height], y0=[medium])
 
     def image(self, target, data):

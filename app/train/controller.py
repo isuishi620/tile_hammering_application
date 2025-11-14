@@ -338,6 +338,8 @@ class TrainController(ControllerBase):
         if buffer.size == 0:
             self.view.error('Pre-training buffer is empty.')
             return
+        if not self._validate_rub_capture(frames, self.model.rub_train_duration_sec, 'Rub Pre-training'):
+            return
         worker = GMMFitWorker(self.model.gmm_pipeline, buffer.copy())
         worker.succeeded.connect(lambda: self._on_pretrain_fit_done(frames))
         worker.failed.connect(self._handle_fit_failed)
@@ -359,6 +361,8 @@ class TrainController(ControllerBase):
     def _finish_rub_training(self, frames):
         if not self.model.rub_pretrained:
             self.view.error('Pre-training has not finished yet.')
+            return
+        if not self._validate_rub_capture(frames, self.model.rub_threshold_duration_sec, 'Rub Training'):
             return
         scores = self._compute_rub_scores(frames)
         if not scores:
@@ -404,6 +408,8 @@ class TrainController(ControllerBase):
         self.model.rub_pretrained = False
         self.model.rub_trained = False
         self.model.gmm_trained = False
+        self.model.reset_rub_session()
+        self.model.reset_gmm_pipeline()
         self.model.pretrain_score_mean = 0.0
         self.model.pretrain_score_std = 1.0
         self.model.train_score_mean = 0.0
@@ -416,6 +422,24 @@ class TrainController(ControllerBase):
         self.view.lcdNumber_RubTHSampleTimes.display(0)
         self._update_rub_finish_label()
         self._set_start_test()
+
+    def _validate_rub_capture(self, frames, expected_duration, phase_name: str) -> bool:
+        valid_frames = [frame for frame in frames if frame is not None and frame.size > 0]
+        if not valid_frames:
+            self.view.error(f'{phase_name}: no audio frames captured.')
+            return False
+
+        total_samples = sum(frame.size for frame in valid_frames)
+        duration = total_samples / float(self.model.sample_rate)
+        min_duration = max(0.5, expected_duration * 0.8)
+        print(f'[{phase_name}] frames={len(valid_frames)}, samples={total_samples}, duration={duration:.2f}s')
+
+        if duration < min_duration:
+            self.view.error(
+                f'{phase_name}: collected only {duration:.1f}s of audio (expected {expected_duration:.1f}s).'
+            )
+            return False
+        return True
 
     def _update_rub_finish_label(self):
         if self.model.rub_trained:
