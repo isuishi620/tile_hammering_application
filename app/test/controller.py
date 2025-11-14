@@ -112,8 +112,7 @@ class TestController(ControllerBase):
     
     # pushButton_play
     def on_pushButton_play_clicked(self):
-        self.view.pushButton_stop.setEnabled(True)
-        self.view.pushButton_stop.setStyleSheet("background-color: rgb(0, 85, 255);")
+        self._update_stop_button(enabled=True, style="background-color: rgb(0, 85, 255);")
         if self.sw_tapping:
             self.sw_play = not self.sw_play
             if self.sw_play:
@@ -127,8 +126,7 @@ class TestController(ControllerBase):
         else:
             if not self.model.rub_trained:
                 self.view.error('rub 未学習です')
-                self.view.pushButton_stop.setEnabled(False)
-                self.view.pushButton_stop.setStyleSheet("background-color: grey;")
+                self._update_stop_button(enabled=False, style="background-color: grey;")
                 return
             self.sw_play = not self.sw_play
             if self.sw_play:
@@ -144,7 +142,7 @@ class TestController(ControllerBase):
     def on_pushButton_stop_clicked(self):
         self.view.pushButton_play.setEnabled(True)
         self.view.pushButton_play.setStyleSheet("background-color: rgb(0, 85, 255);")
-        self.view.pushButton_stop.setStyleSheet("background-color: grey;")
+        self._update_stop_button(style="background-color: grey;")
         self._stop_playback()
         
 
@@ -195,9 +193,8 @@ class TestController(ControllerBase):
                 print(f"{self.model.thresholded=} tapping 未学習")
                 self.view.error('tapping 未学習。')
                 self.view.pushButton_play.setEnabled(False)
-                self.view.pushButton_stop.setEnabled(False)
+                self._update_stop_button(enabled=False, style="background-color: grey;")
                 self.view.pushButton_play.setStyleSheet("background-color: grey;")
-                self.view.pushButton_stop.setStyleSheet("background-color: grey;")
                 self.view.pushButton_play.setText('START')
                 
         # ===[ rub testを選択 ]===
@@ -213,9 +210,8 @@ class TestController(ControllerBase):
                 print(f"{self.model.rub_trained=} rub 未学習")
                 self.view.error('rub 未学習。')
                 self.view.pushButton_play.setEnabled(False)
-                self.view.pushButton_stop.setEnabled(False)
+                self._update_stop_button(enabled=False, style="background-color: grey;")
                 self.view.pushButton_play.setStyleSheet("background-color: grey;")
-                self.view.pushButton_stop.setStyleSheet("background-color: grey;")
                 self.view.pushButton_play.setText('START')
                 
             
@@ -229,8 +225,16 @@ class TestController(ControllerBase):
             self._set_rub_inference(False)
         self.sw_play = False
         self.view.pushButton_play.setText('START')
-        self.view.pushButton_stop.setEnabled(False)
-        self.view.pushButton_stop.setStyleSheet("background-color: grey;")
+        self._update_stop_button(enabled=False, style="background-color: grey;")
+
+    def _update_stop_button(self, enabled=None, style=None):
+        button = getattr(self.view, 'pushButton_stop', None)
+        if button is None:
+            return
+        if enabled is not None:
+            button.setEnabled(enabled)
+        if style is not None:
+            button.setStyleSheet(style)
 
     def _set_rub_inference(self, enabled: bool):
         self.model.gmm_is_infering = enabled

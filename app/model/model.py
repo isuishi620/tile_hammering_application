@@ -302,9 +302,9 @@ class Model(ModelBase):
 
     def rub_threshold_offsets(self):
         zero_point = self.train_score_mean
-        sigma1, sigma2, _ = self._rub_threshold_bands
-        low = max(sigma1 - zero_point, 0.0)
-        medium = max(sigma2 - zero_point, 0.0)
+        _, sigma2, sigma3 = self._rub_threshold_bands
+        low = max(sigma2 - zero_point, 0.0)
+        medium = max(sigma3 - zero_point, 0.0)
         return (low, medium, medium)
 
 
