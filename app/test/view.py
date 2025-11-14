@@ -95,6 +95,17 @@ class TestView(ViewBase):
         else:
             self.anomaly_plot.setXRange(xs.min() - 0.5, xs.max() + 0.5, padding=0)
 
+    def plot_rub_anomaly_scatter(self, indices, scores, colors):
+        if not indices or not scores:
+            self.scatter.clear()
+            return
+        brushes = [pg.mkBrush(c) for c in colors] if colors else pg.mkBrush('w')
+        self.scatter.setData(x=indices, y=scores, brush=brushes)
+        if len(indices) == 1:
+            self.anomaly_plot.setXRange(indices[0] - 1, indices[0] + 1, padding=0)
+        else:
+            self.anomaly_plot.setXRange(min(indices) - 0.5, max(indices) + 0.5, padding=0)
+
 
     def threshold(self, low, medium):
         max = medium * 10

@@ -11,10 +11,12 @@ from app.util.timer import Timer
 from collections import deque
 from app.util.read import Read
 from app.util.trigger import Trigger
-from app.pipeline.pipeline import melspec_zscore
+from app.pipeline.pipeline import melspec_zscore, gmm
+from app.model.rub import RubSession, RubPhase
 
 class Model(ModelBase):
     trigger_signal = pyqtSignal()
+    rub_progress = pyqtSignal(float)
 
 
     def __init__(self):
@@ -31,14 +33,17 @@ class Model(ModelBase):
         self.threshold_max: float = 20.0
         self._trigger_threshold: float = 0.0
 
-        # ===[ tap 訓練　最大回数 ]===
-        self.tap_train_sample_all_number: int = 30
-        # ===[ tap 閾値　最大回数 ]===
-        self.tap_th_sample_all_number: int = 30
-        # ===[ rub 訓練　最大時間 s ]===
-        self.rub_train_sample_all_number: int = 30
-        # ===[ rub 閾値　最大時間 s ]===
-        self.rub_th_sample_all_number: int = 30
+        # ===[ tap 訓練データ目標数 ]===
+        self.tap_train_target_count: int = 30
+        # ===[ tap 閾値データ目標数 ]===
+        self.tap_threshold_target_count: int = 30
+        # ===[ rub 訓練収集時間 (s) ]===
+        self.rub_train_duration_sec: float = 2
+        # ===[ rub 閾値収集時間 (s) ]===
+        self.rub_threshold_duration_sec: float = 2
+        self.rub_session = RubSession(train_time=float(self.rub_train_duration_sec))
+        self._rub_train_elapsed: float = 0.0
+        self._rub_th_elapsed: float = 0.0
 
         # ===[ MICデータ ]===
         self.fps: int = 30
@@ -81,6 +86,8 @@ class Model(ModelBase):
         # ===[ PL_FFT ]===
         self.PL_FFT_n_fft: int = 4096
         self.PL_FFT_power: int = 2
+        self.window: str = 'hann'
+        self.noverlap: int = int(self.PL_FFT_n_fft * 0.75)
         # ===[ PL_MEL ]===
         self.PL_MEL_n_mels: int = 40
         self.PL_MEL_f_min: int = 1000
@@ -91,6 +98,21 @@ class Model(ModelBase):
         self.trigger_is_active: bool = False
         self._trigger_data = np.array([])
         self.pipeline = melspec_zscore(self)
+        self.n_components: int = 1
+        self.covariance_type: str = 'full'
+        self.random_state: int = 42
+        self.gmm_pipeline = gmm(self)
+        self.gmm_is_infering: bool = False
+        self.gmm_pretrained: bool = False
+        self.gmm_calibrated: bool = False
+        self.pretrain_score_mean: float = 0.0
+        self.pretrain_score_std: float = 1.0
+        self.train_score_mean: float = 0.0
+        self.train_score_std: float = 1.0
+        self.rub_anomaly_threshold_sigma: float = 3.0
+        self._rub_threshold_bands = (0.0, 0.0, 0.0)
+        self.rub_anomaly_scores: list = []
+        self.rub_anomaly_history_size: int = 50
 
 
         self.trained: bool = False
@@ -183,11 +205,11 @@ class Model(ModelBase):
     
     @property
     def rub_train_sample_number(self) -> int:
-        return 3
+        return int(self._rub_train_elapsed)
     
     @property
     def rub_th_sample_number(self) -> int:
-        return 4
+        return int(self._rub_th_elapsed)
     
     @property
     def block_data(self) -> np.ndarray:
@@ -197,6 +219,9 @@ class Model(ModelBase):
     def block_data(self, value: np.ndarray):
         self._block_data = np.array(value)
         self.buffer_data = self._block_data
+        if self.rub_session.is_active():
+            progress = self.rub_session.append_frame(self._block_data, len(self._block_data), self.sample_rate)
+            self.rub_progress.emit(progress)
 
     @property
     def buffer_data(self) -> np.ndarray:
@@ -208,6 +233,74 @@ class Model(ModelBase):
     def buffer_data(self, value: np.ndarray):
         self._buffer_data.append(value)
 
+    def set_rub_train_elapsed(self, seconds: float):
+        self._rub_train_elapsed = max(0.0, float(seconds))
+
+    def set_rub_threshold_elapsed(self, seconds: float):
+        self._rub_th_elapsed = max(0.0, float(seconds))
+
+    # ===[ Rub anomaly utilities ]===
+    def compute_rub_anomaly(self, signal: np.ndarray) -> float:
+        if self.gmm_pipeline is None:
+            raise RuntimeError("GMM pipeline is not initialized.")
+        scores = self.gmm_pipeline.transform(signal)
+        return float(np.mean(scores))
+
+    def record_rub_anomaly_score(self, score: float) -> None:
+        self.rub_anomaly_scores.append(score)
+        if len(self.rub_anomaly_scores) > self.rub_anomaly_history_size:
+            self.rub_anomaly_scores = self.rub_anomaly_scores[-self.rub_anomaly_history_size:]
+
+    def latest_rub_anomaly_scores(self, count=None):
+        if count is None:
+            count = self.rub_anomaly_history_size
+        if count <= 0 or not self.rub_anomaly_scores:
+            return []
+        return list(self.rub_anomaly_scores[-count:])
+
+    def latest_rub_anomaly_series(self, count=None):
+        scores = self.latest_rub_anomaly_scores(count)
+        total = len(self.rub_anomaly_scores)
+        start = max(0, total - len(scores))
+        indices = list(range(start, start + len(scores)))
+        colors = self._colorize_rub_scores(scores)
+        return indices, scores, colors
+
+    def _colorize_rub_scores(self, scores):
+        if not scores:
+            return []
+        low, medium, high = self._rub_threshold_bands
+        colors = []
+        for score in scores:
+            if score < low:
+                colors.append('#2196F3')
+            elif score < medium:
+                colors.append('#FFEB3B')
+            elif score >= high:
+                colors.append('#F44336')
+            else:
+                colors.append('#FF9800')
+        return colors
+
+    def standardize_pretrain(self, score: float) -> float:
+        return (score - self.pretrain_score_mean) / self._safe_std(self.pretrain_score_std)
+
+    def standardize_training(self, score: float) -> float:
+        return (score - self.train_score_mean) / self._safe_std(self.train_score_std)
+
+    def denormalize_training(self, z_value: float) -> float:
+        return (z_value * self.train_score_std) + self.train_score_mean
+
+    @staticmethod
+    def _safe_std(std: float) -> float:
+        return std if abs(std) > 1e-8 else 1e-8
+
+    def set_rub_threshold_bands(self, sigma1: float, sigma2: float, sigma3: float):
+        self._rub_threshold_bands = (sigma1, sigma2, sigma3)
+
+    @property
+    def rub_threshold_bands(self):
+        return self._rub_threshold_bands
 
 
     def _init_camera(self):
@@ -227,6 +320,30 @@ class Model(ModelBase):
         buffer_length = int(buffer_time * (sample_rate / block_size))
         buffer = deque([np.full(block_size, 0)] * buffer_length, maxlen=buffer_length)
         return buffer
+
+    # ===[ Rub session helpers ]===
+    def start_rub_collection(self, now: float, phase: RubPhase, duration: float):
+        self.rub_session.train_time = float(duration)
+        self.rub_session.start(now, phase)
+
+    def stop_rub_collection(self):
+        self.rub_session.stop()
+
+    def rub_elapsed(self, now: float) -> float:
+        return self.rub_session.elapsed(now)
+
+    def rub_collection_completed(self, now: float) -> bool:
+        return self.rub_session.completed(now)
+
+    def rub_phase(self):
+        return self.rub_session.phase
+
+    def rub_frames(self):
+        return self.rub_session.frames
+
+    @property
+    def rub_buffer(self) -> np.ndarray:
+        return self.rub_session.buffer
 
     @property
     def camera_data(self):

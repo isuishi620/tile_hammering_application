@@ -69,20 +69,20 @@ class TrainView(ViewBase):
 
     # lcdNumber All
     def set_lcdNumberAll(self, 
-                         tap_train_sample_all_number, 
-                         tap_th_sample_all_number, 
-                         rub_train_sample_all_number, 
-                         rub_th_sample_all_number):
+                         tap_train_target_count, 
+                         tap_threshold_target_count, 
+                         rub_train_duration_sec, 
+                         rub_threshold_duration_sec):
         # tap 回数
         # lcdNumber_TapTrainSampleAllNumber 
-        self.lcdNumber_TapTrainSampleAllNumber.display(tap_train_sample_all_number)
+        self.lcdNumber_TapTrainSampleAllNumber.display(tap_train_target_count)
         # lcdNumber_TapTHSampleAllNumber
-        self.lcdNumber_TapTHSampleAllNumber.display(tap_th_sample_all_number)
+        self.lcdNumber_TapTHSampleAllNumber.display(tap_threshold_target_count)
         # rub 時間s
         # lcdNumber_RubTrainSampleAllTime
-        self.lcdNumber_RubTrainSampleAllTime.display(rub_train_sample_all_number)
+        self.lcdNumber_RubTrainSampleAllTime.display(rub_train_duration_sec)
         # lcdNumber_RubTHSampleAllTimes
-        self.lcdNumber_RubTHSampleAllTimes.display(rub_th_sample_all_number)
+        self.lcdNumber_RubTHSampleAllTimes.display(rub_threshold_duration_sec)
 
     def _set_lcdNumber(self):
         # tap 回数

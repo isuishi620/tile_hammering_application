@@ -68,12 +68,12 @@ class MenuController(ControllerBase):
             # print(f'{self.model.threshold=}')
             # print(f'{self.model.trig_level_val=}')
 
-            if self.model.tap_train_sample_number == self.model.tap_train_sample_all_number:
+            if self.model.tap_train_sample_number == self.model.tap_train_target_count:
                 self.model.pipeline.fit(self.model.train_data)
                 self.model.trained = True
                 
 
-            if self.model.tap_th_sample_number == self.model.tap_th_sample_all_number:
+            if self.model.tap_th_sample_number == self.model.tap_threshold_target_count:
                 self.model.thresholded = True
                 anomaly = self.model.pipeline.transform(self.model.threshold_data)
                 self.model.anomaly_threshold = anomaly

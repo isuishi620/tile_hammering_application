@@ -44,6 +44,7 @@ class TestController(ControllerBase):
                 
         # これを追加すれば、一先ずはトリガが動作するようになります。
         self.model.timer.signal.connect(self.handle_timer_signal)
+        self.model.timer.signal.connect(self.handle_rub_inference)
 
 
     def on_enter(self, payload=None):
@@ -70,11 +71,13 @@ class TestController(ControllerBase):
 
     # pushButton_Tapping
     def on_pushButton_Tapping_clicked(self):
+        self._stop_playback()
         self.sw_tapping = True
         self._set_tapping()
 
     # pushButton_Rubbing
     def on_pushButton_Rubbing_clicked(self):
+        self._stop_playback()
         self.sw_tapping = False
         self._set_tapping()
 
@@ -111,29 +114,39 @@ class TestController(ControllerBase):
     def on_pushButton_play_clicked(self):
         self.view.pushButton_stop.setEnabled(True)
         self.view.pushButton_stop.setStyleSheet("background-color: rgb(0, 85, 255);")
-        self.sw_play = not self.sw_play
-        if self.sw_play:
-            self.view.pushButton_play.setText('⏸') # 開始なので　一時停止が押せる
-            self.model.trigger.start()
-            self.add_trigger_method(self.handle_test_data)
-            # self.model.timer.signal.connect(self.handle_test_data)
+        if self.sw_tapping:
+            self.sw_play = not self.sw_play
+            if self.sw_play:
+                self.view.pushButton_play.setText('⏸')
+                self.model.trigger.start()
+                self.add_trigger_method(self.handle_test_data)
+            else:
+                self.view.pushButton_play.setText('▶')
+                self.model.trigger.stop()
+                self.remove_trigger_method(self.handle_test_data)
         else:
-            self.view.pushButton_play.setText('▶') # 一時停止なので　開始が押せる
-            self.model.trigger.stop()
-            self.remove_trigger_method(self.handle_test_data)
-            # self.model.timer.signal.connect(self.handle_test_data)
+            if not self.model.rub_thresholded:
+                self.view.error('rub 未学習です')
+                self.view.pushButton_stop.setEnabled(False)
+                self.view.pushButton_stop.setStyleSheet("background-color: grey;")
+                return
+            self.sw_play = not self.sw_play
+            if self.sw_play:
+                self.view.pushButton_play.setText('⏸')
+                self._set_rub_inference(True)
+            else:
+                self.view.pushButton_play.setText('▶')
+                self._set_rub_inference(False)
 
 
     # pushButton_stop
-    # ===[ 未実装　何をしたいか不明 ]===
+    # ===[ stop button handler ]===
     def on_pushButton_stop_clicked(self):
         self.view.pushButton_play.setEnabled(True)
         self.view.pushButton_play.setStyleSheet("background-color: rgb(0, 85, 255);")
         self.view.pushButton_stop.setStyleSheet("background-color: grey;")
-        self.sw_play = False
-        self.view.pushButton_play.setText('▶')
-
-
+        self._stop_playback()
+        
 
     def handle_camera(self):
         if self.model.camera_is_stream and self.model.curl_window == 2:
@@ -142,6 +155,8 @@ class TestController(ControllerBase):
                 self.view.image(self.view.camera_image, _data)
 
     def handle_test_data(self):
+        if not self.sw_tapping:
+            return
         if self.model.audio_is_stream and self.model.curl_window == 2:
             print(f'{self.model.anomaly_threshold=}')
             _trigger_data = self.model.trigger_data
@@ -192,6 +207,8 @@ class TestController(ControllerBase):
                 self.view.pushButton_Rubbing.setStyleSheet("background-color: rgb(0, 85, 255);")
                 self.view.pushButton_play.setEnabled(True)
                 self.view.pushButton_play.setStyleSheet("background-color: rgb(0, 85, 255);")
+                low, medium, _ = self.model.rub_threshold_bands
+                self.view.threshold(low, medium)
             else:
                 print(f"{self.model.rub_thresholded=} rub 未学習")
                 self.view.error('rub 未学習。')
@@ -202,6 +219,48 @@ class TestController(ControllerBase):
                 self.view.pushButton_play.setText('▶')
                 
             
+
+
+    def _stop_playback(self):
+        if self.sw_tapping:
+            self.model.trigger.stop()
+            self.remove_trigger_method(self.handle_test_data)
+        else:
+            self._set_rub_inference(False)
+        self.sw_play = False
+        self.view.pushButton_play.setText('▶')
+        self.view.pushButton_stop.setEnabled(False)
+        self.view.pushButton_stop.setStyleSheet("background-color: grey;")
+
+    def _set_rub_inference(self, enabled: bool):
+        self.model.gmm_is_infering = enabled
+        if not enabled:
+            return
+
+    def handle_rub_inference(self):
+        if not (self.model.audio_is_stream and self.model.curl_window == 2):
+            return
+        if self.sw_tapping or not self.model.gmm_is_infering or not self.model.rub_thresholded:
+            return
+        block = getattr(self.model, "block_data", None)
+        if block is None or getattr(block, "size", 0) == 0:
+            return
+        try:
+            raw_anomaly = self.model.compute_rub_anomaly(block)
+        except Exception as exc:
+            self.view.error(str(exc))
+            return
+        standardized = self.model.standardize_pretrain(raw_anomaly)
+        normalized = self.model.standardize_training(standardized)
+        normalized = max(0.0, normalized)
+        absolute = self.model.denormalize_training(normalized)
+        self.model.record_rub_anomaly_score(absolute)
+        indices, scores, colors = self.model.latest_rub_anomaly_series(self.model.display_count)
+        self.view.plot_rub_anomaly_scatter(indices, scores, colors)
+        low, medium, high = self.model.rub_threshold_bands
+        self.view.threshold(low, medium)
+        if absolute > high:
+            self.save_jpg(absolute)
 
     def get_folder_path(self):
         """
