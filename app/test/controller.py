@@ -117,11 +117,11 @@ class TestController(ControllerBase):
         if self.sw_tapping:
             self.sw_play = not self.sw_play
             if self.sw_play:
-                self.view.pushButton_play.setText('⏸')
+                self.view.pushButton_play.setText('STOP')
                 self.model.trigger.start()
                 self.add_trigger_method(self.handle_test_data)
             else:
-                self.view.pushButton_play.setText('▶')
+                self.view.pushButton_play.setText('START')
                 self.model.trigger.stop()
                 self.remove_trigger_method(self.handle_test_data)
         else:
@@ -132,10 +132,10 @@ class TestController(ControllerBase):
                 return
             self.sw_play = not self.sw_play
             if self.sw_play:
-                self.view.pushButton_play.setText('⏸')
+                self.view.pushButton_play.setText('STOP')
                 self._set_rub_inference(True)
             else:
-                self.view.pushButton_play.setText('▶')
+                self.view.pushButton_play.setText('START')
                 self._set_rub_inference(False)
 
 
@@ -198,7 +198,7 @@ class TestController(ControllerBase):
                 self.view.pushButton_stop.setEnabled(False)
                 self.view.pushButton_play.setStyleSheet("background-color: grey;")
                 self.view.pushButton_stop.setStyleSheet("background-color: grey;")
-                self.view.pushButton_play.setText('▶')
+                self.view.pushButton_play.setText('START')
                 
         # ===[ rub testを選択 ]===
         else:
@@ -207,8 +207,8 @@ class TestController(ControllerBase):
                 self.view.pushButton_Rubbing.setStyleSheet("background-color: rgb(0, 85, 255);")
                 self.view.pushButton_play.setEnabled(True)
                 self.view.pushButton_play.setStyleSheet("background-color: rgb(0, 85, 255);")
-                low, medium, _ = self.model.rub_threshold_bands
-                self.view.threshold(low, medium)
+                low, medium, high = self.model.rub_threshold_offsets()
+                self.view.threshold(low, medium, high)
             else:
                 print(f"{self.model.rub_trained=} rub 未学習")
                 self.view.error('rub 未学習。')
@@ -216,7 +216,7 @@ class TestController(ControllerBase):
                 self.view.pushButton_stop.setEnabled(False)
                 self.view.pushButton_play.setStyleSheet("background-color: grey;")
                 self.view.pushButton_stop.setStyleSheet("background-color: grey;")
-                self.view.pushButton_play.setText('▶')
+                self.view.pushButton_play.setText('START')
                 
             
 
@@ -228,7 +228,7 @@ class TestController(ControllerBase):
         else:
             self._set_rub_inference(False)
         self.sw_play = False
-        self.view.pushButton_play.setText('▶')
+        self.view.pushButton_play.setText('START')
         self.view.pushButton_stop.setEnabled(False)
         self.view.pushButton_stop.setStyleSheet("background-color: grey;")
 
@@ -252,15 +252,16 @@ class TestController(ControllerBase):
             return
         standardized = self.model.standardize_pretrain(raw_anomaly)
         normalized = self.model.standardize_training(standardized)
-        normalized = max(0.0, normalized)
         absolute = self.model.denormalize_training(normalized)
-        self.model.record_rub_anomaly_score(absolute)
+        zero_point = self.model.train_score_mean
+        anomaly = max(absolute - zero_point, 0.0)
+        self.model.record_rub_anomaly_score(anomaly)
         indices, scores, colors = self.model.latest_rub_anomaly_series(self.model.display_count)
         self.view.plot_rub_anomaly_scatter(indices, scores, colors)
-        low, medium, high = self.model.rub_threshold_bands
-        self.view.threshold(low, medium)
-        if absolute > high:
-            self.save_jpg(absolute)
+        low, medium, high = self.model.rub_threshold_offsets()
+        self.view.threshold(low, medium, high)
+        if anomaly > high:
+            self.save_jpg(anomaly)
 
     def get_folder_path(self):
         """

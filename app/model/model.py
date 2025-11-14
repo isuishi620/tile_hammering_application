@@ -269,17 +269,15 @@ class Model(ModelBase):
     def _colorize_rub_scores(self, scores):
         if not scores:
             return []
-        low, medium, high = self._rub_threshold_bands
+        low, medium, _ = self.rub_threshold_offsets()
         colors = []
         for score in scores:
             if score < low:
                 colors.append('#2196F3')
             elif score < medium:
                 colors.append('#FFEB3B')
-            elif score >= high:
-                colors.append('#F44336')
             else:
-                colors.append('#FF9800')
+                colors.append('#F44336')
         return colors
 
     def standardize_pretrain(self, score: float) -> float:
@@ -301,6 +299,13 @@ class Model(ModelBase):
     @property
     def rub_threshold_bands(self):
         return self._rub_threshold_bands
+
+    def rub_threshold_offsets(self):
+        zero_point = self.train_score_mean
+        sigma1, sigma2, _ = self._rub_threshold_bands
+        low = max(sigma1 - zero_point, 0.0)
+        medium = max(sigma2 - zero_point, 0.0)
+        return (low, medium, medium)
 
 
     def _init_camera(self):

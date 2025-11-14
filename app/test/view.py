@@ -48,7 +48,8 @@ class TestView(ViewBase):
             pxMode=True,  
         )
         self.anomaly_plot.addItem(self.scatter)
-        self.anomaly_plot.enableAutoRange('y', True)
+        self.anomaly_plot.enableAutoRange('y', False)
+        self.anomaly_plot.setYRange(0, 1, padding=0)
         self.anomaly_plot.setMouseEnabled(x=False, y=True)
         self.anomaly_plot.sigRangeChanged.connect(self._sync_bar_range)
 
@@ -94,6 +95,7 @@ class TestView(ViewBase):
             self.anomaly_plot.setXRange(xs[0] - 1, xs[0] + 1, padding=0)
         else:
             self.anomaly_plot.setXRange(xs.min() - 0.5, xs.max() + 0.5, padding=0)
+        self._update_anomaly_y_range(last)
         self._sync_bar_range()
 
     def plot_rub_anomaly_scatter(self, indices, scores, colors):
@@ -106,6 +108,7 @@ class TestView(ViewBase):
             self.anomaly_plot.setXRange(indices[0] - 1, indices[0] + 1, padding=0)
         else:
             self.anomaly_plot.setXRange(min(indices) - 0.5, max(indices) + 0.5, padding=0)
+        self._update_anomaly_y_range(scores)
         self._sync_bar_range()
 
 
@@ -128,6 +131,7 @@ class TestView(ViewBase):
             y_min = min(low, 0.0)
             y_max = max(high, y_min + 1.0)
 
+        y_min = max(0.0, y_min)
         if y_max <= y_min:
             y_max = y_min + 1.0
 
@@ -144,6 +148,17 @@ class TestView(ViewBase):
 
         red_height = y_max - medium_clamped if y_max > medium_clamped else 0
         self.red_bar_2_2.setOpts(height=[red_height], y0=[medium_clamped])
+
+    def _update_anomaly_y_range(self, values):
+        if values is None or len(values) == 0:
+            return
+        arr = np.asarray(values, dtype=float)
+        max_val = float(np.max(arr))
+        min_val = float(np.min(arr))
+        min_val = max(min_val, 0.0)
+        if max_val <= min_val:
+            max_val = min_val + 1.0
+        self.anomaly_plot.setYRange(min_val, max_val, padding=0.1)
 
     def image(self, target, data):
         target.setImage(data)
