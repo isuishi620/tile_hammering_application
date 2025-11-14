@@ -1,109 +1,127 @@
-from PyQt5.QtCore import pyqtSignal, QObject
+from __future__ import annotations
+
+import inspect
+from typing import Any, Callable, Iterable, List
+
+from PyQt5.QtCore import QObject, pyqtSignal
+
 from .model import ModelBase
 from .view import ViewBase
-import inspect
-import cv2
+
+
+Handler = Callable[..., None]
+
 
 class ControllerBase(QObject):
+    """Shared behaviour for every window controller."""
+
     signal = pyqtSignal(object)
 
-    def __init__(self, model:ModelBase, view:ViewBase):
+    def __init__(self, model: ModelBase, view: ViewBase):
         super().__init__()
         self.model = model
+        self.view = view
 
         self.model.trigger_signal.connect(self.handle_trigger_signal)
-        self.trigger_methods = []
-        
-        self.view = view
         self.view.signal.connect(self.handle_view_signal)
-        self.timeout_methods = []
 
+        self.trigger_methods: List[Callable[[], None]] = []
+        self.timeout_methods: List[Callable[[], None]] = []
 
-
-    def handle_view_signal(self, name: str, widget: object, event: str, payload=None) -> None:
-        """
-        Viewから (name, widget, event, payload) を受け取り、
-        on_{name}_{event} → on_{event} → on_{name} → on_any の順
-        """
+    # ------------------------------------------------------------------ #
+    # View dispatch helpers
+    # ------------------------------------------------------------------ #
+    def handle_view_signal(
+        self,
+        name: str,
+        widget: object,
+        event: str,
+        payload: Any | None = None,
+    ) -> None:
+        """Dispatch a signal emitted by the view to the matching handler."""
         try:
-            candidates = [
-                f'on_{name}_{event}',  
-                f'on_{event}',      
-                f'on_{name}',       
-                'on_any',           
-            ]
-            for cname in candidates:
-                if hasattr(self, cname):
-                    handler = getattr(self, cname)
+            for candidate in self._candidate_handlers(name, event):
+                if hasattr(self, candidate):
+                    handler = getattr(self, candidate)
                     self._invoke(handler, name, widget, event, payload)
                     return
-            raise NotImplementedError(f'{name}({event}) に対応するハンドラーが存在しません')
-        except Exception as e:
-            self.view.error(str(e))
+            raise NotImplementedError(f"{name}({event}) has no handler")
+        except Exception as exc:  # pragma: no cover - defensive UI path
+            self.view.error(str(exc))
 
-    def _invoke(self, handler, name, widget, event, payload):
-        """ハンドラーの引数数に合わせてスマートに呼ぶ（後方互換あり）"""
+    def _candidate_handlers(self, name: str, event: str) -> Iterable[str]:
+        return (
+            f"on_{name}_{event}",
+            f"on_{event}",
+            f"on_{name}",
+            "on_any",
+        )
+
+    def _invoke(self, handler: Handler, name: str, widget: object, event: str, payload: Any) -> None:
+        """Invoke a handler while respecting its declared arity."""
         args = (name, widget, event, payload)
-        n = len(inspect.signature(handler).parameters)
-        if n >= 4:
-            handler(*args)
-        elif n == 3:
-            handler(*args[:3])
-        elif n == 2:
-            handler(*args[:2])
-        elif n == 1:
-            handler(args[0])
-        else:
-            handler()
+        argc = len(inspect.signature(handler).parameters)
+        handler(*args[:argc])
 
-
-    def handle_trigger_signal(self):
+    # ------------------------------------------------------------------ #
+    # Trigger handling
+    # ------------------------------------------------------------------ #
+    def handle_trigger_signal(self) -> None:
         try:
-            for method in self.trigger_methods:
+            for method in list(self.trigger_methods):
                 method()
-        except Exception as e:
-            self.view.error(str(e))
+        except Exception as exc:  # pragma: no cover - defensive UI path
+            self.view.error(str(exc))
 
-    def add_trigger_method(self, method):
+    def add_trigger_method(self, method: Callable[[], None]) -> None:
         if method not in self.trigger_methods:
             self.trigger_methods.append(method)
 
-    def remove_trigger_method(self, method):
+    def remove_trigger_method(self, method: Callable[[], None]) -> None:
         if method in self.trigger_methods:
             self.trigger_methods.remove(method)
 
-    def reset_trigger_method(self):
-        self.trigger_methods = []
+    def reset_trigger_method(self) -> None:
+        self.trigger_methods.clear()
 
+    # ------------------------------------------------------------------ #
+    # Timer helpers
+    # ------------------------------------------------------------------ #
+    def handle_timer_signal(self) -> None:
+        if not self.view.isVisible():
+            return
+        try:
+            for method in list(self.timeout_methods):
+                method()
+        except Exception as exc:  # pragma: no cover - defensive UI path
+            self.view.error(str(exc))
 
-    def handle_timer_signal(self):
-        if self.view.isVisible():
-            try:
-                for method in self.timeout_methods:
-                    method()
-            except Exception as e:
-                self.view.error(str(e))
-
-    def add_timeout_method(self, method):
+    def add_timeout_method(self, method: Callable[[], None]) -> None:
         if method not in self.timeout_methods:
             self.timeout_methods.append(method)
 
-    def remove_timeout_method(self, method):
+    def remove_timeout_method(self, method: Callable[[], None]) -> None:
         if method in self.timeout_methods:
             self.timeout_methods.remove(method)
 
-    def reset_timeout_method(self):
-        self.timeout_methods = []
+    def reset_timeout_method(self) -> None:
+        self.timeout_methods.clear()
 
-    def start_process(self):
-        self.model.audio.start()
+    # ------------------------------------------------------------------ #
+    # Common start/stop helpers
+    # ------------------------------------------------------------------ #
+    def start_process(self) -> None:
+        """Start audio/camera processing if available."""
+        audio = getattr(self.model, "audio", None)
+        if audio is not None:
+            audio.start()
         self.model.audio_is_stream = True
         self.model.camera_is_stream = True
 
-    # ===[ audio stream ずっと使うので　停止だけで良い ]===
-    def end_process(self):
-        self.model.audio.stop()# まず停止
-        # self.model.audio.close() # 次にリソースを解放
+    def end_process(self) -> None:
+        """Stop audio/camera processing if available."""
+        audio = getattr(self.model, "audio", None)
+        if audio is not None:
+            audio.stop()
         self.model.audio_is_stream = False
         self.model.camera_is_stream = False
-    

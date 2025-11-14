@@ -1,5 +1,3 @@
-import sys
-import os
 import time
 from datetime import datetime
 import pickle
@@ -7,7 +5,6 @@ import pickle
 import numpy as np
 
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QApplication
@@ -17,9 +14,7 @@ from app.base.controller import ControllerBase
 from app.util.window import Window
 from app.model.rub import RubPhase
 
-import cv2
 
-# import sounddevice as sd
 
 
 class GMMFitWorker(QThread):
@@ -43,17 +38,14 @@ class TrainController(ControllerBase):
 
     def __init__(self, model: ModelBase, view: ViewBase):
         super().__init__(model, view)
-        # self.add_config_updated_method(self.on_pushButton_3_clicked)
 
 
         self._set_tapping()
-        # ===[ トリガレベルのint値で設定 ]===
         self.view.set_slider(self.model.trig_level_min,
                              self.model.trig_level_max,
                              self.model.trig_level_val)
         
 
-        # ===[ All tap学習と閾値回数 rub学習と閾値時間s　の設定 ]===
         self.view.set_lcdNumberAll(self.model.tap_train_target_count,
                                    self.model.tap_threshold_target_count,
                                    self.model.rub_train_duration_sec,
@@ -71,102 +63,67 @@ class TrainController(ControllerBase):
     def on_enter(self, payload=None):
         self.view.set_threshold(self.model.trigger_threshold) 
         self.view.verticalSlider_TrigLevel.setValue(self.model.trig_level_val)
-        # ===[ read mic 開始 ]===
         self.start_process()
 
         
-    # pushButton_StartTest
     def on_pushButton_StartTest_clicked(self):
         self._save_condition()
-        # self.view.error('TEST。')
-        # ===[ read mic 停止 ]===
         self.end_process()
-        self.model.curl_window = 2
+        self.model.current_window = Window.TEST
         self.signal.emit(Window.TEST)
     
-    # pushButton_ReturnMenu
     def on_pushButton_ReturnMenu_clicked(self):
         if self.model.thresholded:
             self._save_condition()
-        # ===[ read mic 停止 ]===
         self.end_process()
-        self.model.curl_window = 0
+        self.model.current_window = Window.MENU
         self.signal.emit(Window.MENU)
     
     
     def on_pushButton_SetTap_clicked(self):
-        # ボタン色が変わり有効となる
         self._set_tapping()
      
 
     def on_pushButton_SetRub_clicked(self):
-        # ボタン色が変わり有効となる
-        # self.view.error('TEST。')
         self._set_rub()
 
     
-    # pushButton_TrigLevel
     def on_pushButton_TrigLevel_clicked(self):
-        
-        # 現在の範囲と値を確認（コンソールに出力）
-        # print(f"スライダーの最小値: {self.view.verticalSlider_TrigLevel.minimum()}")
-        # print(f"スライダーの最大値: {self.view.verticalSlider_TrigLevel.maximum()}")
-        print(f"トリガレベルの現在int値: {self.view.verticalSlider_TrigLevel.value()}")
-        # ===[ トリガレベルの物理値 ]===        
-        print(f"トリガレベルの現在物理値: {self.model.trigger_threshold:.2f}")
+        pass
 
-    # ===[ 閾値verticalSlider_TrigLevelの値変更 ]===
     def on_verticalSlider_TrigLevel_valueChanged(self, _name, _widget, _event, value):
-        """スライダーが変更された後に実行されるメソッド"""
-        # self.model.trig_level_val = self.view.verticalSlider_TrigLevel.value()
-        # ===[ スライダーint value ]===
+        """Handle slider updates from the UI."""
         self.model.trig_level_val = value
-        # ===[ 閾値の物理値 ]===
         self.model.trigger_threshold = self.model.trig_level2th()
         self.view.set_threshold(self.model.trigger_threshold)        
-        # print('============================================')
-        # print(f'スライダーの値は：{self.model.trig_level_val}')
-        # print(f'閾値は：{self.model.trigger_threshold:.2f}')
 
 
 
     
-    # pushButton_TapTrainSampleStart
     def on_pushButton_TapTrainSampleStart_clicked(self):
         if self.model.trained:
-            if self.view.confirm('訓練データを消去しますか？'):
+            if self.view.confirm("Delete existing training samples?"):
                 self._delete_train_data()
-                # ===[ 閾値データも消去　トリガー停止 ]===
                 self._delete_threshold_data()
                 self._tap_th_sample_stop()
                 self._set_tapping()
-                
             else:
-                # self.view.trigger_button_click(self.view.pushButton_8, 0)
                 self._tap_train_sample_stop()
-                pass
-        
-        self.model.trigger.start()
-        # print(f"trigger_is_active: {self.model.trigger_is_active}")
-        self.add_trigger_method(self.handle_train_data)
-              
-        self.view.lcdNumber_TapTrainSampleNumber.display(self.model.tap_train_sample_number)
-        print(f"回数取得: {self.view.lcdNumber_TapTrainSampleNumber.intValue()}")
 
+        self.model.trigger.start()
+        self.add_trigger_method(self.handle_train_data)
+        self.view.lcdNumber_TapTrainSampleNumber.display(self.model.tap_train_sample_number)
 
     def _tap_train_sample_stop(self):
         self.model.trigger.stop()
         self.remove_trigger_method(self.handle_train_data)
 
-
-    # pushButton_TapTHSampleStart
     def on_pushButton_TapTHSampleStart_clicked(self):
         if self.model.thresholded:
-            if self.view.confirm('閾値データを消去しますか？'):
+            if self.view.confirm("Delete existing threshold samples?"):
                 self._delete_threshold_data()
                 self._set_tapping()
             else:
-                # self.view.trigger_button_click(self.view.pushButton_13, 0)
                 self._tap_th_sample_stop()
                 pass
 
@@ -174,13 +131,11 @@ class TrainController(ControllerBase):
         self.add_trigger_method(self.handle_threshold_data)
 
         self.view.lcdNumber_TapTHSampleNumber.display(self.model.tap_th_sample_number)
-        print(f"回数取得: {self.view.lcdNumber_TapTHSampleNumber.intValue()}") 
     
     def _tap_th_sample_stop(self):
         self.model.trigger.stop()
         self.remove_trigger_method(self.handle_threshold_data)
 
-    # pushButton_RubTrainSampleStart
     def on_pushButton_RubTrainSampleStart_clicked(self):
         if self._gmm_fit_worker is not None:
             self.view.error('GMM fitting is running. Please wait.')
@@ -196,10 +151,8 @@ class TrainController(ControllerBase):
         self.model.set_rub_train_elapsed(0.0)
         self.view.lcdNumber_RubTrainSampleTime.display(0)
         self._start_rub_capture(RubPhase.PRETRAIN, self.model.rub_train_duration_sec)
-        self.view.label_RubFinish.setText('-pretrain-')
-        self.view.label_RubFinish.setStyleSheet('background-color: rgb(0, 85, 255); color: white;')
+        self.view.set_rub_status('-pretrain-')
         
-    # pushButtopushButton_RubTHSampleStartn_RubTrainSampleStart
     def on_pushButton_RubTHSampleStart_clicked(self):
         if self._gmm_fit_worker is not None:
             self.view.error('GMM fitting is running. Please wait.')
@@ -218,91 +171,26 @@ class TrainController(ControllerBase):
         self.model.set_rub_threshold_elapsed(0.0)
         self.view.lcdNumber_RubTHSampleTimes.display(0)
         self._start_rub_capture(RubPhase.TRAIN, self.model.rub_threshold_duration_sec)
-        self.view.label_RubFinish.setText('-training-')
-        self.view.label_RubFinish.setStyleSheet('background-color: rgb(0, 85, 255); color: white;')
+        self.view.set_rub_status('-training-')
 
 
  
     
     def _set_tapping(self):
-        
-        # tapping 有効
-        self.view.pushButton_SetTap.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-        
-        self.view.pushButton_TrigLevel.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-        self.view.pushButton_TrigLevel.setEnabled(True)
-        self.view.verticalSlider_TrigLevel.setStyleSheet("background-color: rgb(0, 85, 255);")
-        self.view.verticalSlider_TrigLevel.setEnabled(True)
-        self.view.pushButton_TapTrainSampleStart.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-        self.view.pushButton_TapTrainSampleStart.setEnabled(True)
-        
-        if self.model.trained:
-            self.view.pushButton_TapTHSampleStart.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-            self.view.pushButton_TapTHSampleStart.setEnabled(True)
-        else:
-            self.view.pushButton_TapTHSampleStart.setStyleSheet("background-color: grey; color: white;")
-            self.view.pushButton_TapTHSampleStart.setEnabled(False)
-        if self.model.thresholded:
-            self.view.label_TapFinish.setText('-finish-')
-            self.view.label_TapFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: red;")
-        else:
-            self.view.label_TapFinish.setText('-begin-')
-            self.view.label_TapFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")        
-        
-
-        # rub 無効
-        self.view.pushButton_SetRub.setStyleSheet("background-color: grey; color: white;")
-
-        self.view.pushButton_RubTrainSampleStart.setStyleSheet("background-color: grey; color: white;")
-        self.view.pushButton_RubTrainSampleStart.setEnabled(False)
-        self.view.pushButton_RubTHSampleStart.setStyleSheet("background-color: grey; color: white;")
-        self.view.pushButton_RubTHSampleStart.setEnabled(False)
-        self.view.label_RubFinish.setStyleSheet("background-color: grey;")
-        # ===[ テスト開始を有効 ]===
-        self._set_start_test()
+        self.view.show_tapping_mode(
+            trained=self.model.trained,
+            thresholded=self.model.thresholded,
+        )
+        self.view.set_start_test_enabled(self._can_start_test())
 
     def _set_rub(self):
-        
-        # tapping 無効
-        self.view.pushButton_SetTap.setStyleSheet("background-color: grey; color: white;")
-        
-        self.view.pushButton_TrigLevel.setStyleSheet("background-color: grey; color: white;")
-        self.view.pushButton_TrigLevel.setEnabled(False)
-        self.view.verticalSlider_TrigLevel.setStyleSheet("background-color: grey; color: white;")
-        self.view.verticalSlider_TrigLevel.setEnabled(False)
-        self.view.pushButton_TapTrainSampleStart.setStyleSheet("background-color: grey; color: white;")
-        self.view.pushButton_TapTrainSampleStart.setEnabled(False)
-        self.view.pushButton_TapTHSampleStart.setStyleSheet("background-color: grey; color: white;")
-        self.view.pushButton_TapTHSampleStart.setEnabled(False)
-        # self.view.label_TapFinish.setText('-begin-')
-        self.view.label_TapFinish.setStyleSheet("background-color: grey;")
-
-        # rub 有効
-        self.view.pushButton_SetRub.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-
-        self.view.pushButton_RubTrainSampleStart.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-        self.view.pushButton_RubTrainSampleStart.setEnabled(True)
+        self.view.show_rub_mode(self.model.rub_pretrained)
         self._update_rub_train_buttons()
         self._update_rub_finish_label()
-        # ===[ テスト開始を有効 ]===
-        self._set_start_test()
-
-    # pushButton_StartTest
-    def _set_start_test(self):
-        if self.model.rub_trained or self.model.thresholded:
-            self.view.pushButton_StartTest.setEnabled(True)
-            self.view.pushButton_StartTest.setStyleSheet("background-color: rgb(0, 85, 255);")
-        else:
-            self.view.pushButton_StartTest.setEnabled(False)
-            self.view.pushButton_StartTest.setStyleSheet("background-color: grey;")
+        self.view.set_start_test_enabled(self._can_start_test())
 
     def _update_rub_train_buttons(self):
-        if self.model.rub_pretrained:
-            self.view.pushButton_RubTHSampleStart.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-            self.view.pushButton_RubTHSampleStart.setEnabled(True)
-        else:
-            self.view.pushButton_RubTHSampleStart.setStyleSheet("background-color: grey; color: white;")
-            self.view.pushButton_RubTHSampleStart.setEnabled(False)
+        self.view.set_rub_threshold_button_enabled(self.model.rub_pretrained)
 
     def _start_rub_capture(self, phase: RubPhase, duration: float):
         self.model.start_rub_collection(time.monotonic(), phase, duration)
@@ -430,7 +318,7 @@ class TrainController(ControllerBase):
         self.view.lcdNumber_RubTHSampleTimes.display(0)
         self._update_rub_train_buttons()
         self._update_rub_finish_label()
-        self._set_start_test()
+        self.view.set_start_test_enabled(self._can_start_test())
 
     def _validate_rub_capture(self, frames, expected_duration, phase_name: str) -> bool:
         valid_frames = [frame for frame in frames if frame is not None and frame.size > 0]
@@ -441,7 +329,6 @@ class TrainController(ControllerBase):
         total_samples = sum(frame.size for frame in valid_frames)
         duration = total_samples / float(self.model.sample_rate)
         min_duration = max(0.5, expected_duration * 0.8)
-        print(f'[{phase_name}] frames={len(valid_frames)}, samples={total_samples}, duration={duration:.2f}s')
 
         if duration < min_duration:
             self.view.error(
@@ -452,29 +339,26 @@ class TrainController(ControllerBase):
 
     def _update_rub_finish_label(self):
         if self.model.rub_trained:
-            self.view.label_RubFinish.setText('-finish-')
-            self.view.label_RubFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: red;")
+            self.view.set_rub_status('-finish-', text_color='red')
         elif self.model.rub_pretrained:
-            self.view.label_RubFinish.setText('-pretrained-')
-            self.view.label_RubFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: yellow;")
+            self.view.set_rub_status('-pretrained-', text_color='yellow')
         else:
-            self.view.label_RubFinish.setText('-begin-')
-            self.view.label_RubFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
+            self.view.set_rub_status('-begin-')
+
+    def _can_start_test(self) -> bool:
+        return self.model.rub_trained or self.model.thresholded
 
     def handle_audio(self): 
-        if self.model.audio_is_stream and self.model.curl_window == 1:
-            # self.view.plot(self.view.audio_curve, self.model.block_data)
+        if self.model.audio_is_stream and self.model.current_window == Window.TRAIN:
             self.view.plot(self.view.audio_curve, self.model.buffer_data)
             
     
     def handle_camera(self):
-        if self.model.camera_is_stream and self.model.curl_window == 1:
+        if self.model.camera_is_stream and self.model.current_window == Window.TRAIN:
             self.view.image(self.view.camera_image, self.model.camera_data)
 
 
     def handle_train_data(self):
-        # print(f"handle_train_data: ")
-        # print(len(self.model.train_data))
         if not self.model.trained:
             self.model.train_data = self.model.trigger_data
             self.view.set_lcd(self.view.lcdNumber_TapTrainSampleNumber, self.model.tap_train_sample_number)
@@ -483,7 +367,6 @@ class TrainController(ControllerBase):
                 self.model.pipeline.fit(self.model.train_data)                
                 self.model.trained = True
                 self._set_tapping()
-                # self._threshold_ready(True)                
                 self._tap_train_sample_stop()
 
     def handle_threshold_data(self):
@@ -494,30 +377,14 @@ class TrainController(ControllerBase):
             if self.model.tap_th_sample_number == self.model.tap_threshold_target_count:
                 self.model.thresholded = True
                 anomaly = self.model.pipeline.transform(self.model.threshold_data)
-                print(f"{anomaly=}")
                 self.model.anomaly_threshold = anomaly
-                print(f"{self.model.anomaly_threshold=}")
                 self._set_tapping()
-                # self._threshold_finish(True)
                 self._tap_th_sample_stop()
-
-    '''
-    def _threshold_ready(self,bool):
-        print(f"self.model.trained: {self.model.trained}")
-        self.view.pushButton_TapTHSampleStart.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-        self.view.pushButton_TapTHSampleStart.setEnabled(bool)
-
-    def _threshold_finish(self,bool):
-        print(f"self.model.thresholded: {self.model.thresholded}")
-        self.view.label_TapFinish.setText('-finish-')
-    '''
-
 
     def _delete_train_data(self):
         self.model.trained = False
         del self.model.train_data
         self.view.set_lcd(self.view.lcdNumber_TapTrainSampleNumber, self.model.tap_train_sample_number)
-        # self._threshold_ready(False)
 
     def _delete_threshold_data(self):
         self.model.thresholded = False
@@ -525,22 +392,26 @@ class TrainController(ControllerBase):
         self.view.set_lcd(self.view.lcdNumber_TapTHSampleNumber, self.model.tap_th_sample_number)
 
     def _save_condition(self):
-        if self.view.confirm('データを保存しますか？'):
-            time = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = 'TRAIN_' + time
-            filepath = self.view.save_file_dialog(filename)
-            if filepath is None:
-                self.view.error('ファイルパスが設定されていません')
-                return
-            
-            data = {
-                'trigger_threshold':self.model.trigger_threshold,
-                'train_data':self.model.train_data,
-                'threshold_data':self.model.threshold_data,
-                'anomaly_threshold':self.model.anomaly_threshold
-            }
+        if not self.view.confirm("Save current training/threshold data?"):
+            return
 
-            with open(filepath, 'wb') as file:
-                pickle.dump(data, file)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"TRAIN_{timestamp}"
+        filepath = self.view.save_file_dialog(filename)
+        if filepath is None:
+            self.view.error("No file path selected.")
+            return
 
-    
+        data = {
+            "trigger_threshold": self.model.trigger_threshold,
+            "train_data": self.model.train_data,
+            "threshold_data": self.model.threshold_data,
+            "anomaly_threshold": self.model.anomaly_threshold,
+        }
+
+        with open(filepath, "wb") as file:
+            pickle.dump(data, file)
+
+
+
+

@@ -1,13 +1,18 @@
-import sys
-import os
+from __future__ import annotations
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from typing import Dict, Optional, Tuple
 
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QStackedWidget
 from PyQt5.QtCore import QObject
+from PyQt5.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
+
 from app.util.window import Window
 
+Route = Tuple[QObject, QWidget]
+
+
 class MainWindow(QWidget):
+    """Simple router that swaps the stacked widget based on Window enum values."""
+
     def __init__(self):
         super().__init__()
         self.stack = QStackedWidget()
@@ -16,65 +21,61 @@ class MainWindow(QWidget):
         self.setLayout(self.layout)
         self.resize(1150, 750)
 
-        self._routes: dict = {}         # Window -> (controller, view)
-        self._current: 'Window|None' = None
+        self._routes: Dict[Window, Route] = {}
+        self._current: Optional[Window] = None
 
-    def register(self, window, controller, view):
+    def register(self, window: Window, controller: QObject, view: QWidget) -> None:
+        """Associate a window enum with a controller/view pair."""
         self._routes[window] = (controller, view)
         if self.stack.indexOf(view) == -1:
             self.stack.addWidget(view)
 
-    def add(self, widget: QObject):
+    def add(self, widget: QObject) -> None:
         self.stack.addWidget(widget)
 
-    def set(self, window):
+    def set(self, window: Window) -> None:
         self.go_to(window)
 
-    def handle_window(self, arg):
-        """
-        arg が Window ならそのまま遷移。
-        (Window, payload) タプルなら payload を渡して遷移。
-        """
+    def handle_window(self, arg) -> None:
+        """Handle signals from controllers requesting a navigation change."""
         if isinstance(arg, tuple) and len(arg) == 2:
             window, payload = arg
             self.go_to(window, payload)
         else:
             self.go_to(arg, {})
 
-    def go_to(self, window, payload=None):
+    def go_to(self, window: Window, payload: Optional[dict] = None) -> None:
         if window not in self._routes:
             if hasattr(window, "index"):
                 self.stack.setCurrentIndex(window.index)
-                self.update_title(window)
                 self._current = window
-                return
+                self._update_title(window)
             return
 
         next_ctrl, next_view = self._routes[window]
 
         if self._current is not None and self._current in self._routes:
             cur_ctrl, _ = self._routes[self._current]
-            try:
-                # on_leave(next_route) を呼べるようにしておく
-                if hasattr(cur_ctrl, "on_leave"):
+            if hasattr(cur_ctrl, "on_leave"):
+                try:
                     cur_ctrl.on_leave(next_route=window)
-            except Exception as e:
-                return
+                except Exception:
+                    return
 
         self.stack.setCurrentWidget(next_view)
         self._current = window
-        self.update_title(window)
+        self._update_title(window)
 
-        try:
-            if hasattr(next_ctrl, "on_enter"):
+        if hasattr(next_ctrl, "on_enter"):
+            try:
                 next_ctrl.on_enter(payload or {})
-        except Exception:
-            pass
+            except Exception:
+                pass
 
-    def update_title(self, window):
-        if window == Window.MENU:
-            self.setWindowTitle("Menu")
-        elif window == Window.TRAIN:
-            self.setWindowTitle("Train")
-        elif window == Window.TEST:
-            self.setWindowTitle("Test")
+    def _update_title(self, window: Window) -> None:
+        titles = {
+            Window.MENU: "Menu",
+            Window.TRAIN: "Train",
+            Window.TEST: "Test",
+        }
+        self.setWindowTitle(titles.get(window, ""))

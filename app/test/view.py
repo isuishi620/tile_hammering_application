@@ -1,23 +1,16 @@
-import sys
-import os
-import pyqtgraph as pg
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+﻿from __future__ import annotations
 
 import numpy as np
-from app.base.view import ViewBase
+import pyqtgraph as pg
 import qdarkstyle as qds
+
+from app.base.view import ViewBase
 
 
 class TestView(ViewBase):
     def __init__(self, ui_path):
         super().__init__(ui_path)
 
-        # self._set_label()
-        # self._set_buttons()
-       
-        # self.checkBox.setText('USBAudio')
-        # self.checkBox.setEnabled(False)
         self._init_graphics_view_monitor()
         self._set_graphicsView_Data()
         self.anomaly_plot_item = None
@@ -67,7 +60,6 @@ class TestView(ViewBase):
         self.graphicsView_Data_2.setMouseEnabled(x=False, y=False)
     
 
-    # ===[ Test画面　異常値描画 list ]===
     def plot_anomaly_scatter(self, data: list, threshold: tuple, n_points: int) -> None:
         if not data:
             self.scatter.clear()
@@ -78,9 +70,6 @@ class TestView(ViewBase):
         xs = np.arange(start_idx, start_idx + len(last), dtype=float)
 
         t1, t2 = threshold
-        print(f'{data=}')
-        print(f'{threshold=}')
-        print(f'{threshold=}')
         brushes = []
         for y in last:
             if y < t1:

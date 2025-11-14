@@ -1,31 +1,20 @@
-import sys
-import os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from __future__ import annotations
 
 from app.base.view import ViewBase
 
+
 class MenuView(ViewBase):
-    def __init__(self, ui_path):
+    """Simple view that only needs to configure button/label text."""
+
+    def __init__(self, ui_path: str):
         super().__init__(ui_path)
+        self._configure_labels()
+        self._configure_buttons()
 
-        self._set_label()
-        self._set_buttons()
-       
-        # self.checkBox.setText('USBAudio')
-        # self.checkBox.setEnabled(False)
+    def _configure_labels(self) -> None:
+        self.label_mode.setText("Mode Select")
 
-    def _set_label(self):
-        # label_mode
-        self.label_mode.setText('Mode Select')
-
-
-    def _set_buttons(self):        
-        # pushButton_new_training
-        self.pushButton_new_training.setText('New\n Training')
-        # pushButton_load_condition
-        self.pushButton_load_condition.setText('Condition\n Load')
-        # pushButton_end
-        self.pushButton_end.setText('END')
-
-    pass
+    def _configure_buttons(self) -> None:
+        self.pushButton_new_training.setText("New\nTraining")
+        self.pushButton_load_condition.setText("Condition\nLoad")
+        self.pushButton_end.setText("End")
