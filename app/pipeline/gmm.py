@@ -25,6 +25,19 @@ class GMM(BaseEstimator, TransformerMixin):
         logp_train = self.gmm_.score_samples(X)
         self._logp_mean = float(logp_train.mean())
         self._logp_std = float(logp_train.std() + 1e-8)
+        converged = getattr(self.gmm_, "converged_", None)
+        n_iter = getattr(self.gmm_, "n_iter_", None)
+        print(
+            "[GMM Fit] shape={}, components={}, converged={}, iter={}, "
+            "logp_mean={:.3f}, logp_std={:.3f}".format(
+                X.shape,
+                self.model.n_components,
+                converged,
+                n_iter,
+                self._logp_mean,
+                self._logp_std,
+            )
+        )
         return self
 
     def transform(self, X):

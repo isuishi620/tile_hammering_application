@@ -282,8 +282,7 @@ class TrainController(ControllerBase):
 
         self.view.pushButton_RubTrainSampleStart.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
         self.view.pushButton_RubTrainSampleStart.setEnabled(True)
-        self.view.pushButton_RubTHSampleStart.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
-        self.view.pushButton_RubTHSampleStart.setEnabled(True)
+        self._update_rub_train_buttons()
         self._update_rub_finish_label()
         # ===[ テスト開始を有効 ]===
         self._set_start_test()
@@ -296,6 +295,14 @@ class TrainController(ControllerBase):
         else:
             self.view.pushButton_StartTest.setEnabled(False)
             self.view.pushButton_StartTest.setStyleSheet("background-color: grey;")
+
+    def _update_rub_train_buttons(self):
+        if self.model.rub_pretrained:
+            self.view.pushButton_RubTHSampleStart.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
+            self.view.pushButton_RubTHSampleStart.setEnabled(True)
+        else:
+            self.view.pushButton_RubTHSampleStart.setStyleSheet("background-color: grey; color: white;")
+            self.view.pushButton_RubTHSampleStart.setEnabled(False)
 
     def _start_rub_capture(self, phase: RubPhase, duration: float):
         self.model.start_rub_collection(time.monotonic(), phase, duration)
@@ -356,6 +363,7 @@ class TrainController(ControllerBase):
         self.model.pretrain_score_mean = float(np.mean(scores))
         self.model.pretrain_score_std = float(np.std(scores) + 1e-8)
         self.model.rub_pretrained = True
+        self._update_rub_train_buttons()
         self._update_rub_finish_label()
 
     def _finish_rub_training(self, frames):
@@ -420,6 +428,7 @@ class TrainController(ControllerBase):
         self.model.set_rub_threshold_bands(0.0, 0.0, 0.0)
         self.view.lcdNumber_RubTrainSampleTime.display(0)
         self.view.lcdNumber_RubTHSampleTimes.display(0)
+        self._update_rub_train_buttons()
         self._update_rub_finish_label()
         self._set_start_test()
 

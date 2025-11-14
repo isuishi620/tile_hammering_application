@@ -38,9 +38,9 @@ class Model(ModelBase):
         # ===[ tap 閾値データ目標数 ]===
         self.tap_threshold_target_count: int = 30
         # ===[ rub 訓練収集時間 (s) ]===
-        self.rub_train_duration_sec: float = 30
+        self.rub_train_duration_sec: float = 3
         # ===[ rub 閾値収集時間 (s) ]===
-        self.rub_threshold_duration_sec: float = 30
+        self.rub_threshold_duration_sec: float = 3
         self.rub_session = RubSession(train_time=float(self.rub_train_duration_sec))
         self._rub_train_elapsed: float = 0.0
         self._rub_th_elapsed: float = 0.0

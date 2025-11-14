@@ -123,8 +123,7 @@ class TestView(ViewBase):
         view_range = self.anomaly_plot.viewRange()
         if view_range:
             _, y_range = view_range
-            y_min = min(low, y_range[0])
-            y_max = max(high, y_range[1])
+            y_min, y_max = y_range
         else:
             y_min = min(low, 0.0)
             y_max = max(high, y_min + 1.0)
@@ -135,15 +134,16 @@ class TestView(ViewBase):
         # Update bar plot range
         self.graphicsView_Data_2.setYRange(y_min, y_max, padding=0)
 
-        # Update bar heights aligned to current view
-        blue_height = low - y_min if low > y_min else 0
-        self.blue_bar_2_2.setOpts(height=[blue_height], y0=[y_min])
+        low_clamped = np.clip(low, y_min, y_max)
+        medium_clamped = np.clip(medium, y_min, y_max)
 
-        yellow_height = medium - low if medium > low else 0
-        self.yellow_bar_2_2.setOpts(height=[yellow_height], y0=[low])
+        self.blue_bar_2_2.setOpts(height=[low_clamped - y_min], y0=[y_min])
 
-        red_height = y_max - medium if y_max > medium else 0
-        self.red_bar_2_2.setOpts(height=[red_height], y0=[medium])
+        yellow_height = medium_clamped - low_clamped if medium_clamped > low_clamped else 0
+        self.yellow_bar_2_2.setOpts(height=[yellow_height], y0=[low_clamped])
+
+        red_height = y_max - medium_clamped if y_max > medium_clamped else 0
+        self.red_bar_2_2.setOpts(height=[red_height], y0=[medium_clamped])
 
     def image(self, target, data):
         target.setImage(data)
