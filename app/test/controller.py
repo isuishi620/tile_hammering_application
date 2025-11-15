@@ -2,6 +2,8 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+import sounddevice as sd
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import QFileDialog
 
@@ -22,6 +24,8 @@ class TestController(ControllerBase):
 
         self.model = model
         self.view = view
+
+        self._beep_is_playing: bool = False
 
         self.add_timeout_method(self.model.trigger.trigger)
         self.model.timer.signal.connect(self.handle_camera)
@@ -132,7 +136,7 @@ class TestController(ControllerBase):
             medium = self.model.anomaly_threshold[-1]
             flg_test = True
             if anomaly > medium and flg_test:
-                self.save_jpg(anomaly)
+                self._capture_anomaly_event(anomaly)
 
     def _set_tapping(self):
         if self.is_tapping_mode:
@@ -231,7 +235,7 @@ class TestController(ControllerBase):
         low, medium, high = self.model.rub_threshold_offsets()
         self.view.threshold(low, medium, high)
         if anomaly > high:
-            self.save_jpg(anomaly)
+            self._capture_anomaly_event(anomaly)
 
     def get_folder_path(self):
         """撮影ファイル用フォルダーを選択または作成できるようにする。"""
@@ -286,6 +290,36 @@ class TestController(ControllerBase):
 
         if not q_image.save(str(unique_path), "JPG", 90):
             self.view.error(f"Failed to save snapshot to {unique_path}.")
+
+    def _capture_anomaly_event(self, anomaly: float) -> None:
+        if self._beep_is_playing:
+            return
+        self._beep_is_playing = True
+        try:
+            self.save_jpg(anomaly)
+        except Exception as exc:
+            self.view.error(str(exc))
+            self._finish_beep()
+            return
+        self._play_beep()
+
+    def _play_beep(self) -> None:
+        waveform = self.model.beep_waveform
+        if waveform is None or waveform.size == 0:
+            self._finish_beep()
+            return
+        try:
+            sd.play(waveform, int(self.model.sample_rate), blocking=False)
+        except Exception as exc:
+            self.view.error(f"Failed to play beep: {exc}")
+            self._finish_beep()
+            return
+        duration_ms = max(1, int(round(self.model.beep_duration_sec * 1000)))
+        QTimer.singleShot(duration_ms, self._finish_beep)
+
+    def _finish_beep(self) -> None:
+        self._beep_is_playing = False
+
 
 
 def get_unique_filepath(filepath_str: str) -> str:

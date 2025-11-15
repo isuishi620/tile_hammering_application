@@ -59,6 +59,10 @@ class Model(ModelBase):
         self.read_time: float = 0.0
         self.audio = Read(self)
         self.camera = self._init_camera()
+        self.beep_duration_sec: float = 0.1
+        self.beep_frequency_hz: float = 1200.0
+        self.beep_volume: float = 0.2
+        self.beep_waveform = self._generate_beep_waveform()
 
         # パイプライン設定
         self.bandpass_min_hz: int = 300
@@ -334,6 +338,12 @@ class Model(ModelBase):
     @train_data.deleter
     def train_data(self):
         self._train_data = np.empty((0, 0))
+
+    def _generate_beep_waveform(self) -> np.ndarray:
+        samples = max(1, int(self.sample_rate * self.beep_duration_sec))
+        t = np.linspace(0.0, self.beep_duration_sec, samples, endpoint=False)
+        waveform = self.beep_volume * np.sin(2.0 * np.pi * self.beep_frequency_hz * t)
+        return waveform.astype(np.float32)
 
     @property
     def threshold_data(self):
