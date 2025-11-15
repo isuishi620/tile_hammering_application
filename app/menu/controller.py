@@ -50,8 +50,12 @@ class MenuController(ControllerBase):
 
         self.model.train_data = data.get("train_data", [])
         self.model.threshold_data = data.get("threshold_data", [])
-        self.model.trigger_threshold = data.get("trigger_threshold", self.model.trigger_threshold)
-        self.model.anomaly_threshold = data.get("anomaly_threshold", self.model.anomaly_threshold or (0.0, 0.0))
+        self.model.trigger_threshold = data.get(
+            "trigger_threshold", self.model.trigger_threshold
+        )
+        self.model.anomaly_threshold = data.get(
+            "anomaly_threshold", self.model.anomaly_threshold or (0.0, 0.0)
+        )
         self.model.trig_level_val = self.model.trig_th2level()
 
         if self.model.tap_train_sample_number == self.model.tap_train_target_count:

@@ -15,11 +15,12 @@ class TestView(ViewBase):
         self._set_graphicsView_Data()
         self.anomaly_plot_item = None
 
-    
     def _init_graphics_view_monitor(self) -> None:
-        self.camera_viewbox = self.graphicsView_Monitor.addViewBox(lockAspect=True, enableMenu=False)
-        self.camera_viewbox.invertY(True)            
-        self.camera_viewbox.setDefaultPadding(0.0) 
+        self.camera_viewbox = self.graphicsView_Monitor.addViewBox(
+            lockAspect=True, enableMenu=False
+        )
+        self.camera_viewbox.invertY(True)
+        self.camera_viewbox.setDefaultPadding(0.0)
 
         self.camera_image = pg.ImageItem()
         self.camera_viewbox.addItem(self.camera_image)
@@ -32,33 +33,38 @@ class TestView(ViewBase):
         self.graphicsView_Data.ci.layout.setColumnStretchFactor(0, 10)
         self.graphicsView_Data.ci.layout.setColumnStretchFactor(1, 1)
 
-        self.anomaly_plot.setLabel('left', 'Anomaly Score')
-        self.anomaly_plot.setLabel('bottom', 'Data')
+        self.anomaly_plot.setLabel("left", "Anomaly Score")
+        self.anomaly_plot.setLabel("bottom", "Data")
         self.anomaly_plot.showGrid(x=True, y=True)
         self.scatter = pg.ScatterPlotItem(
             size=20,
-            pen=pg.mkPen('w', width=2),
-            pxMode=True,  
+            pen=pg.mkPen("w", width=2),
+            pxMode=True,
         )
         self.anomaly_plot.addItem(self.scatter)
-        self.anomaly_plot.enableAutoRange('y', False)
+        self.anomaly_plot.enableAutoRange("y", False)
         self.anomaly_plot.setYRange(0, 1, padding=0)
         self.anomaly_plot.setMouseEnabled(x=False, y=True)
         self.anomaly_plot.sigRangeChanged.connect(self._sync_bar_range)
 
-        self.graphicsView_Data_2.setLabel('bottom', ' ')
-        self.graphicsView_Data_2.hideAxis('left')
+        self.graphicsView_Data_2.setLabel("bottom", " ")
+        self.graphicsView_Data_2.hideAxis("left")
 
-        self.blue_bar_2_2 = pg.BarGraphItem(x=[1], height=[0], width=1, pen=None, brush=qds.DarkPalette.COLOR_ACCENT_5)
-        self.yellow_bar_2_2 = pg.BarGraphItem(x=[1], height=[0], width=1, pen=None, brush='y')
-        self.red_bar_2_2 = pg.BarGraphItem(x=[1], height=[0], width=1, pen=None, brush='r')
-                                           
+        self.blue_bar_2_2 = pg.BarGraphItem(
+            x=[1], height=[0], width=1, pen=None, brush=qds.DarkPalette.COLOR_ACCENT_5
+        )
+        self.yellow_bar_2_2 = pg.BarGraphItem(
+            x=[1], height=[0], width=1, pen=None, brush="y"
+        )
+        self.red_bar_2_2 = pg.BarGraphItem(
+            x=[1], height=[0], width=1, pen=None, brush="r"
+        )
+
         self.graphicsView_Data_2.addItem(self.blue_bar_2_2)
         self.graphicsView_Data_2.addItem(self.yellow_bar_2_2)
         self.graphicsView_Data_2.addItem(self.red_bar_2_2)
-        
+
         self.graphicsView_Data_2.setMouseEnabled(x=False, y=False)
-    
 
     def plot_anomaly_scatter(self, data: list, threshold: tuple, n_points: int) -> None:
         if not data:
@@ -73,11 +79,11 @@ class TestView(ViewBase):
         brushes = []
         for y in last:
             if y < t1:
-                brushes.append(pg.mkBrush('b')) 
+                brushes.append(pg.mkBrush("b"))
             elif y < t2:
-                brushes.append(pg.mkBrush('y')) 
+                brushes.append(pg.mkBrush("y"))
             else:
-                brushes.append(pg.mkBrush('r')) 
+                brushes.append(pg.mkBrush("r"))
         self.scatter.setData(x=xs, y=last, brush=brushes)
 
         if len(xs) == 1:
@@ -91,15 +97,16 @@ class TestView(ViewBase):
         if not indices or not scores:
             self.scatter.clear()
             return
-        brushes = [pg.mkBrush(c) for c in colors] if colors else pg.mkBrush('w')
+        brushes = [pg.mkBrush(c) for c in colors] if colors else pg.mkBrush("w")
         self.scatter.setData(x=indices, y=scores, brush=brushes)
         if len(indices) == 1:
             self.anomaly_plot.setXRange(indices[0] - 1, indices[0] + 1, padding=0)
         else:
-            self.anomaly_plot.setXRange(min(indices) - 0.5, max(indices) + 0.5, padding=0)
+            self.anomaly_plot.setXRange(
+                min(indices) - 0.5, max(indices) + 0.5, padding=0
+            )
         self._update_anomaly_y_range(scores)
         self._sync_bar_range()
-
 
     def threshold(self, low, medium, high=None):
         max_value = high if high is not None else medium
@@ -132,7 +139,9 @@ class TestView(ViewBase):
 
         self.blue_bar_2_2.setOpts(height=[low_clamped - y_min], y0=[y_min])
 
-        yellow_height = medium_clamped - low_clamped if medium_clamped > low_clamped else 0
+        yellow_height = (
+            medium_clamped - low_clamped if medium_clamped > low_clamped else 0
+        )
         self.yellow_bar_2_2.setOpts(height=[yellow_height], y0=[low_clamped])
 
         red_height = y_max - medium_clamped if y_max > medium_clamped else 0

@@ -14,7 +14,7 @@ class RubPhase(Enum):
 
 @dataclass
 class RubSession:
-    """単一の擦りトレーニングセッションを管理する状態コンテナー。"""
+    """単一の転がしトレーニングセッションを管理する状態コンテナー。"""
 
     train_time: float
     data: List[np.ndarray] = field(default_factory=list)

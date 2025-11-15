@@ -1,14 +1,13 @@
 import os
 from datetime import datetime
-
 from pathlib import Path
 
 from PyQt5.QtGui import QImage
 from PyQt5.QtWidgets import QFileDialog
 
+from app.base.controller import ControllerBase
 from app.base.model import ModelBase
 from app.base.view import ViewBase
-from app.base.controller import ControllerBase
 from app.util.window import Window
 
 
@@ -21,16 +20,14 @@ class TestController(ControllerBase):
         self.selected_path: str = os.getcwd()
         self.monitor_view_enabled: bool = True
 
-
         self.model = model
         self.view = view
 
         self.add_timeout_method(self.model.trigger.trigger)
         self.model.timer.signal.connect(self.handle_camera)
-                
+
         self.model.timer.signal.connect(self.handle_timer_signal)
         self.model.timer.signal.connect(self.handle_rub_inference)
-
 
     def on_enter(self, payload=None):
         if self.model.thresholded:
@@ -40,16 +37,13 @@ class TestController(ControllerBase):
             self.is_tapping_mode = False
             self._set_tapping()
         else:
-            self.view.error('Train tapping or rub test cannot start without training.')
+            self.view.error("Train tapping or rub test cannot start without training.")
         self.start_process()
-    
-   
 
     def on_pushButton_ReturnTraining_clicked(self):
         self.end_process()
         self.model.current_window = Window.TRAIN
         self.signal.emit(Window.TRAIN)
-    
 
     def on_pushButton_Tapping_clicked(self):
         self._stop_playback()
@@ -62,61 +56,63 @@ class TestController(ControllerBase):
         self._set_tapping()
 
     def on_pushButton_NgFolder_clicked(self):
-        self.selected_path = self.get_folder_path()           
+        self.selected_path = self.get_folder_path()
 
     def on_pushButton_MonitorViewOn_clicked(self):
         self.monitor_view_enabled = not self.monitor_view_enabled
-        
+
         if self.monitor_view_enabled:
-            self.view.pushButton_MonitorViewOn.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
+            self.view.pushButton_MonitorViewOn.setStyleSheet(
+                "background-color: rgb(0, 85, 255); color: white;"
+            )
         else:
-            self.view.pushButton_MonitorViewOn.setStyleSheet("background-color: grey; color: white;")
-            '''
+            self.view.pushButton_MonitorViewOn.setStyleSheet(
+                "background-color: grey; color: white;"
+            )
+            """
             try:
                 self.model.timer.signal.disconnect(self.handle_camera)
             except TypeError:
                 pass
-            '''
-        
+            """
 
-    
     def on_pushButton_play_clicked(self):
-        self._update_stop_button(enabled=True, style="background-color: rgb(0, 85, 255);")
+        self._update_stop_button(
+            enabled=True, style="background-color: rgb(0, 85, 255);"
+        )
         if self.is_tapping_mode:
             self.is_playing = not self.is_playing
             if self.is_playing:
-                self.view.pushButton_play.setText('STOP')
+                self.view.pushButton_play.setText("STOP")
                 self.model.trigger.start()
                 self.add_trigger_method(self.handle_test_data)
             else:
-                self.view.pushButton_play.setText('START')
+                self.view.pushButton_play.setText("START")
                 self.model.trigger.stop()
                 self.remove_trigger_method(self.handle_test_data)
         else:
             if not self.model.rub_trained:
-                self.view.error('rub test cannot start without training.')
+                self.view.error("rub test cannot start without training.")
                 self._update_stop_button(enabled=False, style="background-color: grey;")
                 return
             self.is_playing = not self.is_playing
             if self.is_playing:
-                self.view.pushButton_play.setText('STOP')
+                self.view.pushButton_play.setText("STOP")
                 self._set_rub_inference(True)
             else:
-                self.view.pushButton_play.setText('START')
+                self.view.pushButton_play.setText("START")
                 self._set_rub_inference(False)
-
 
     def on_pushButton_stop_clicked(self):
         self.view.pushButton_play.setEnabled(True)
         self.view.pushButton_play.setStyleSheet("background-color: rgb(0, 85, 255);")
         self._update_stop_button(style="background-color: grey;")
         self._stop_playback()
-        
 
     def handle_camera(self):
         if self.model.camera_is_stream and self.model.current_window == Window.TEST:
             _data = self.model.camera_data
-            if self.monitor_view_enabled: 
+            if self.monitor_view_enabled:
                 self.view.image(self.view.camera_image, _data)
 
     def handle_test_data(self):
@@ -128,52 +124,56 @@ class TestController(ControllerBase):
             self.model.record_test_anomaly(anomaly)
 
             self.view.plot_anomaly_scatter(
-                                self.model.test_anomalies,
-                                self.model.anomaly_threshold,
-                                self.model.display_count
+                self.model.test_anomalies,
+                self.model.anomaly_threshold,
+                self.model.display_count,
             )
 
-            
             medium = self.model.anomaly_threshold[-1]
             flg_test = True
             if anomaly > medium and flg_test:
                 self.save_jpg(anomaly)
 
-
-
     def _set_tapping(self):
         if self.is_tapping_mode:
             self.view.pushButton_Rubbing.setStyleSheet("background-color: grey;")
             if self.model.thresholded:
-                self.view.pushButton_Tapping.setStyleSheet("background-color: rgb(0, 85, 255);")
+                self.view.pushButton_Tapping.setStyleSheet(
+                    "background-color: rgb(0, 85, 255);"
+                )
                 self.view.pushButton_play.setEnabled(True)
-                self.view.pushButton_play.setStyleSheet("background-color: rgb(0, 85, 255);")
-                self.view.threshold(low=self.model.anomaly_threshold[0],
-                            medium=self.model.anomaly_threshold[-1])
+                self.view.pushButton_play.setStyleSheet(
+                    "background-color: rgb(0, 85, 255);"
+                )
+                self.view.threshold(
+                    low=self.model.anomaly_threshold[0],
+                    medium=self.model.anomaly_threshold[-1],
+                )
             else:
-                self.view.error('Complete tapping training first.')
+                self.view.error("Complete tapping training first.")
                 self.view.pushButton_play.setEnabled(False)
                 self._update_stop_button(enabled=False, style="background-color: grey;")
                 self.view.pushButton_play.setStyleSheet("background-color: grey;")
-                self.view.pushButton_play.setText('START')
-                
+                self.view.pushButton_play.setText("START")
+
         else:
             self.view.pushButton_Tapping.setStyleSheet("background-color: grey;")
             if self.model.rub_trained:
-                self.view.pushButton_Rubbing.setStyleSheet("background-color: rgb(0, 85, 255);")
+                self.view.pushButton_Rubbing.setStyleSheet(
+                    "background-color: rgb(0, 85, 255);"
+                )
                 self.view.pushButton_play.setEnabled(True)
-                self.view.pushButton_play.setStyleSheet("background-color: rgb(0, 85, 255);")
+                self.view.pushButton_play.setStyleSheet(
+                    "background-color: rgb(0, 85, 255);"
+                )
                 low, medium, high = self.model.rub_threshold_offsets()
                 self.view.threshold(low, medium, high)
             else:
-                self.view.error('rub test cannot start without training.')
+                self.view.error("rub test cannot start without training.")
                 self.view.pushButton_play.setEnabled(False)
                 self._update_stop_button(enabled=False, style="background-color: grey;")
                 self.view.pushButton_play.setStyleSheet("background-color: grey;")
-                self.view.pushButton_play.setText('START')
-                
-            
-
+                self.view.pushButton_play.setText("START")
 
     def _stop_playback(self):
         if self.is_tapping_mode:
@@ -182,11 +182,11 @@ class TestController(ControllerBase):
         else:
             self._set_rub_inference(False)
         self.is_playing = False
-        self.view.pushButton_play.setText('START')
+        self.view.pushButton_play.setText("START")
         self._update_stop_button(enabled=False, style="background-color: grey;")
 
     def _update_stop_button(self, enabled=None, style=None):
-        button = getattr(self.view, 'pushButton_stop', None)
+        button = getattr(self.view, "pushButton_stop", None)
         if button is None:
             return
         if enabled is not None:
@@ -200,9 +200,15 @@ class TestController(ControllerBase):
             return
 
     def handle_rub_inference(self):
-        if not (self.model.audio_is_stream and self.model.current_window == Window.TEST):
+        if not (
+            self.model.audio_is_stream and self.model.current_window == Window.TEST
+        ):
             return
-        if self.is_tapping_mode or not self.model.gmm_is_infering or not self.model.rub_trained:
+        if (
+            self.is_tapping_mode
+            or not self.model.gmm_is_infering
+            or not self.model.rub_trained
+        ):
             return
         block = getattr(self.model, "block_data", None)
         if block is None or getattr(block, "size", 0) == 0:
@@ -218,7 +224,9 @@ class TestController(ControllerBase):
         zero_point = self.model.train_score_mean
         anomaly = max(absolute - zero_point, 0.0)
         self.model.record_rub_anomaly_score(anomaly)
-        indices, scores, colors = self.model.latest_rub_anomaly_series(self.model.display_count)
+        indices, scores, colors = self.model.latest_rub_anomaly_series(
+            self.model.display_count
+        )
         self.view.plot_rub_anomaly_scatter(indices, scores, colors)
         low, medium, high = self.model.rub_threshold_offsets()
         self.view.threshold(low, medium, high)
@@ -251,10 +259,9 @@ class TestController(ControllerBase):
 
     def make_dir(self, folder_path: Path):
         folder_path.mkdir(parents=True, exist_ok=True)
-    
-    
+
     def save_jpg(self, anomaly: float) -> None:
-        frame = getattr(self.model, 'camera_data', None)
+        frame = getattr(self.model, "camera_data", None)
         if frame is None:
             return
 
@@ -270,15 +277,16 @@ class TestController(ControllerBase):
             QImage.Format.Format_RGB888,
         )
 
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         filename = f"{timestamp}_{anomaly:.2f}.jpg"
         base_path = Path(self.selected_path)
         base_path.mkdir(parents=True, exist_ok=True)
         target_path = base_path / filename
         unique_path = Path(get_unique_filepath(str(target_path)))
 
-        if not q_image.save(str(unique_path), 'JPG', 90):
+        if not q_image.save(str(unique_path), "JPG", 90):
             self.view.error(f"Failed to save snapshot to {unique_path}.")
+
 
 def get_unique_filepath(filepath_str: str) -> str:
     """既存ファイルがあれば番号を付けて一意なパスを返す。"""
@@ -296,5 +304,3 @@ def get_unique_filepath(filepath_str: str) -> str:
         if not candidate.exists():
             return str(candidate)
         i += 1
-
-

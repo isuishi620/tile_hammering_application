@@ -14,12 +14,12 @@ from app.util.timer import Timer
 from app.util.trigger import Trigger
 from app.util.window import Window
 
+
 class Model(ModelBase):
     """全コントローラーで共有するアプリケーション状態。"""
 
     trigger_signal = pyqtSignal()
     rub_progress = pyqtSignal(float)
-
 
     def __init__(self):
         super().__init__()
@@ -48,7 +48,7 @@ class Model(ModelBase):
         self.camera_is_stream: bool = False
         self.sample_rate: int = 48000
         self.input: int = 2
-        self.dtype: str = 'int16'
+        self.dtype: str = "int16"
         self.block_size: int = 2048
         self.ch: int = 0
         self.eu: float = 0.1
@@ -67,7 +67,7 @@ class Model(ModelBase):
         self.bandpass_stop_ripple_db: int = 40
         self.fft_size: int = 4096
         self.fft_power: int = 2
-        self.fft_window: str = 'hann'
+        self.fft_window: str = "hann"
         self.stft_overlap: int = int(self.fft_size * 0.75)
         self.mel_bins: int = 40
         self.mel_min_hz: int = 1000
@@ -79,7 +79,7 @@ class Model(ModelBase):
         self._trigger_data = np.array([])
         self.pipeline = melspec_zscore(self)
         self.n_components: int = 2
-        self.covariance_type: str = 'full'
+        self.covariance_type: str = "full"
         self.random_state: int = 42
         self.gmm_pipeline = gmm(self)
         self.gmm_is_infering: bool = False
@@ -108,7 +108,7 @@ class Model(ModelBase):
         self.current_window: Window = Window.MENU
         self.test_anomalies: list[float] = []
         self.display_count: int = 20
-        
+
     def record_test_anomaly(self, value: float) -> None:
         self.test_anomalies.append(float(value))
 
@@ -118,8 +118,8 @@ class Model(ModelBase):
     @property
     def trigger_threshold(self):
         return self._trigger_threshold
-    
-    @trigger_threshold.setter    
+
+    @trigger_threshold.setter
     def trigger_threshold(self, value) -> float:
         self._trigger_threshold = value
 
@@ -134,35 +134,37 @@ class Model(ModelBase):
         range_trig = self.trig_level_max - self.trig_level_min
         range_th = self.threshold_max - self.threshold_min
         percent = (self.trigger_threshold - self.threshold_min) / range_th
-        value = percent * range_trig + self.trig_level_min   
+        value = percent * range_trig + self.trig_level_min
         return int(value)
-    
+
     @property
     def tap_train_sample_number(self) -> int:
         return len(self.train_data)
-    
+
     @property
     def tap_th_sample_number(self) -> int:
         return len(self.threshold_data)
-    
+
     @property
     def rub_train_sample_number(self) -> int:
         return int(self._rub_train_elapsed)
-    
+
     @property
     def rub_th_sample_number(self) -> int:
         return int(self._rub_th_elapsed)
-    
+
     @property
     def block_data(self) -> np.ndarray:
         return self._block_data
-    
+
     @block_data.setter
     def block_data(self, value: np.ndarray):
         self._block_data = np.array(value)
         self.buffer_data = self._block_data
         if self.rub_session.is_active():
-            progress = self.rub_session.append_frame(self._block_data, len(self._block_data), self.sample_rate)
+            progress = self.rub_session.append_frame(
+                self._block_data, len(self._block_data), self.sample_rate
+            )
             self.rub_progress.emit(progress)
 
     @property
@@ -170,7 +172,7 @@ class Model(ModelBase):
         if len(self._buffer_data) == 0:
             return np.array([])
         return np.concatenate(list(self._buffer_data))
-    
+
     @buffer_data.setter
     def buffer_data(self, value: np.ndarray):
         self._buffer_data.append(value)
@@ -190,7 +192,9 @@ class Model(ModelBase):
     def record_rub_anomaly_score(self, score: float) -> None:
         self.rub_anomaly_scores.append(score)
         if len(self.rub_anomaly_scores) > self.rub_anomaly_history_size:
-            self.rub_anomaly_scores = self.rub_anomaly_scores[-self.rub_anomaly_history_size:]
+            self.rub_anomaly_scores = self.rub_anomaly_scores[
+                -self.rub_anomaly_history_size :
+            ]
 
     def latest_rub_anomaly_scores(self, count=None):
         if count is None:
@@ -214,15 +218,17 @@ class Model(ModelBase):
         colors = []
         for score in scores:
             if score < low:
-                colors.append('#2196F3')
+                colors.append("#2196F3")
             elif score < medium:
-                colors.append('#FFEB3B')
+                colors.append("#FFEB3B")
             else:
-                colors.append('#F44336')
+                colors.append("#F44336")
         return colors
 
     def standardize_pretrain(self, score: float) -> float:
-        return (score - self.pretrain_score_mean) / self._safe_std(self.pretrain_score_std)
+        return (score - self.pretrain_score_mean) / self._safe_std(
+            self.pretrain_score_std
+        )
 
     def standardize_training(self, score: float) -> float:
         return (score - self.train_score_mean) / self._safe_std(self.train_score_std)
@@ -248,16 +254,14 @@ class Model(ModelBase):
         medium = max(sigma3 - zero_point, 0.0)
         return (low, medium, medium)
 
-
     def _init_camera(self):
-        return cv2.VideoCapture(0,cv2.CAP_DSHOW)
+        return cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
     def time_reset(self):
-        if hasattr(self, 'audio') and hasattr(self.audio, 'time_reset'):
+        if hasattr(self, "audio") and hasattr(self.audio, "time_reset"):
             self.audio.time_reset()
         else:
             self.read_time = 0
-
 
     def _make_buffer(self) -> deque:
         buffer_time = self.buffer_time
@@ -303,25 +307,22 @@ class Model(ModelBase):
     def camera_data(self):
         _, frame = self.camera.read()
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # 軸を入れ替える: (height, width, ch) -> (width, height, ch)
-        # (Y, X, 色) から (X, Y, 色) へ変換する
         frame_transposed = frame_rgb.transpose((1, 0, 2))
         return frame_transposed
-
 
     @property
     def trigger_data(self):
         return self._trigger_data
-    
+
     @trigger_data.setter
-    def trigger_data(self,value):
+    def trigger_data(self, value):
         self._trigger_data = value
         self.trigger_signal.emit()
 
     @property
     def train_data(self):
         return self._train_data
-    
+
     @train_data.setter
     def train_data(self, value):
         value = np.atleast_2d(value)
@@ -337,7 +338,7 @@ class Model(ModelBase):
     @property
     def threshold_data(self):
         return self._threshold_data
-    
+
     @threshold_data.setter
     def threshold_data(self, value):
         value = np.atleast_2d(value)
@@ -353,9 +354,9 @@ class Model(ModelBase):
     @property
     def anomaly_threshold(self):
         return self._anomaly_threshold
-    
+
     @anomaly_threshold.setter
-    def anomaly_threshold(self,anomaly):
+    def anomaly_threshold(self, anomaly):
         mean = np.mean(anomaly)
         std_dev = np.std(anomaly)
         self._anomaly_threshold = (mean + 2 * std_dev, mean + 3 * std_dev)

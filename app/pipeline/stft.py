@@ -1,6 +1,6 @@
-from sklearn.base import BaseEstimator, TransformerMixin
 import numpy as np
 from scipy import signal
+from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class ShortTimeFourierTransform(BaseEstimator, TransformerMixin):
@@ -40,7 +40,7 @@ class ShortTimeFourierTransform(BaseEstimator, TransformerMixin):
             Zxx = Zxx[: self.f_range, :]
             S = np.abs(Zxx).T
         if self.model.fft_power not in (None, 1.0):
-            S = S ** self.model.fft_power
+            S = S**self.model.fft_power
 
         return S
 

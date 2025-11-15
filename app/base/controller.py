@@ -8,7 +8,6 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from .model import ModelBase
 from .view import ViewBase
 
-
 Handler = Callable[..., None]
 
 
@@ -57,7 +56,9 @@ class ControllerBase(QObject):
             "on_any",
         )
 
-    def _invoke(self, handler: Handler, name: str, widget: object, event: str, payload: Any) -> None:
+    def _invoke(
+        self, handler: Handler, name: str, widget: object, event: str, payload: Any
+    ) -> None:
         """ハンドラーの想定引数数を守って呼び出す。"""
         args = (name, widget, event, payload)
         argc = len(inspect.signature(handler).parameters)

@@ -29,7 +29,9 @@ class TrainView(ViewBase):
         """スライダーが変化したら名前と値をシグナルで渡す。"""
         for slider in self.findChildren(QSlider):
             name = slider.objectName()
-            slider.valueChanged.connect(lambda v, n=name, s=slider: self.signal.emit(n, s, "valueChanged", v))
+            slider.valueChanged.connect(
+                lambda v, n=name, s=slider: self.signal.emit(n, s, "valueChanged", v)
+            )
 
     def set_slider(self, min_value, max_value, value):
         self.verticalSlider_TrigLevel.setRange(min_value, max_value)
@@ -40,19 +42,34 @@ class TrainView(ViewBase):
         self._set_active_button(self.pushButton_SetTap, active=True)
         self._set_active_button(self.pushButton_SetRub, active=False)
         self._set_button_enabled(self.pushButton_TrigLevel, enabled=True, active=True)
-        self._set_button_enabled(self.verticalSlider_TrigLevel, enabled=True, active=True)
-        self._set_button_enabled(self.pushButton_TapTrainSampleStart, enabled=True, active=True)
-        self._set_button_enabled(self.pushButton_TapTHSampleStart, enabled=trained, active=trained)
+        self._set_button_enabled(
+            self.verticalSlider_TrigLevel, enabled=True, active=True
+        )
+        self._set_button_enabled(
+            self.pushButton_TapTrainSampleStart, enabled=True, active=True
+        )
+        self._set_button_enabled(
+            self.pushButton_TapTHSampleStart, enabled=trained, active=trained
+        )
 
         if thresholded:
-            self.set_lcd(self.lcdNumber_TapTHSampleNumber, self.lcdNumber_TapTHSampleNumber.intValue())
+            self.set_lcd(
+                self.lcdNumber_TapTHSampleNumber,
+                self.lcdNumber_TapTHSampleNumber.intValue(),
+            )
             self.label_TapFinish.setText("-finish-")
-            self.label_TapFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: red;")
+            self.label_TapFinish.setStyleSheet(
+                "background-color: rgb(0, 85, 255); color: red;"
+            )
         else:
             self.label_TapFinish.setText("-begin-")
-            self.label_TapFinish.setStyleSheet("background-color: rgb(0, 85, 255); color: white;")
+            self.label_TapFinish.setStyleSheet(
+                "background-color: rgb(0, 85, 255); color: white;"
+            )
 
-        self._set_button_enabled(self.pushButton_RubTrainSampleStart, enabled=False, active=False)
+        self._set_button_enabled(
+            self.pushButton_RubTrainSampleStart, enabled=False, active=False
+        )
         self.set_rub_threshold_button_enabled(False)
         self.set_rub_status(self.label_RubFinish.text(), background="grey")
 
@@ -60,26 +77,44 @@ class TrainView(ViewBase):
         """擦り用の操作を強調し、タップ用の操作を無効化する。"""
         self._set_active_button(self.pushButton_SetTap, active=False)
         self._set_button_enabled(self.pushButton_TrigLevel, enabled=False, active=False)
-        self._set_button_enabled(self.verticalSlider_TrigLevel, enabled=False, active=False)
-        self._set_button_enabled(self.pushButton_TapTrainSampleStart, enabled=False, active=False)
-        self._set_button_enabled(self.pushButton_TapTHSampleStart, enabled=False, active=False)
+        self._set_button_enabled(
+            self.verticalSlider_TrigLevel, enabled=False, active=False
+        )
+        self._set_button_enabled(
+            self.pushButton_TapTrainSampleStart, enabled=False, active=False
+        )
+        self._set_button_enabled(
+            self.pushButton_TapTHSampleStart, enabled=False, active=False
+        )
         self.label_TapFinish.setStyleSheet("background-color: grey;")
 
         self._set_active_button(self.pushButton_SetRub, active=True)
-        self._set_button_enabled(self.pushButton_RubTrainSampleStart, enabled=True, active=True)
+        self._set_button_enabled(
+            self.pushButton_RubTrainSampleStart, enabled=True, active=True
+        )
         self.set_rub_threshold_button_enabled(rub_pretrained)
 
     def set_start_test_enabled(self, enabled: bool):
         self.pushButton_StartTest.setEnabled(enabled)
-        style = "background-color: rgb(0, 85, 255);" if enabled else "background-color: grey;"
+        style = (
+            "background-color: rgb(0, 85, 255);"
+            if enabled
+            else "background-color: grey;"
+        )
         self.pushButton_StartTest.setStyleSheet(style)
 
     def set_rub_threshold_button_enabled(self, enabled: bool):
-        self._set_button_enabled(self.pushButton_RubTHSampleStart, enabled=enabled, active=enabled)
+        self._set_button_enabled(
+            self.pushButton_RubTHSampleStart, enabled=enabled, active=enabled
+        )
 
-    def set_rub_status(self, text: str, text_color: str = "white", background: str = "rgb(0, 85, 255)"):
+    def set_rub_status(
+        self, text: str, text_color: str = "white", background: str = "rgb(0, 85, 255)"
+    ):
         self.label_RubFinish.setText(text)
-        self.label_RubFinish.setStyleSheet(f"background-color: {background}; color: {text_color};")
+        self.label_RubFinish.setStyleSheet(
+            f"background-color: {background}; color: {text_color};"
+        )
 
     def set_lcdNumberAll(
         self,
@@ -109,7 +144,9 @@ class TrainView(ViewBase):
         self.audio_plot.setYRange(-20, 20, padding=0)
 
     def _init_graphics_view_monitor(self) -> None:
-        self.camera_viewbox = self.graphicsView_Monitor.addViewBox(lockAspect=True, enableMenu=False)
+        self.camera_viewbox = self.graphicsView_Monitor.addViewBox(
+            lockAspect=True, enableMenu=False
+        )
         self.camera_viewbox.invertY(True)
         self.camera_viewbox.setDefaultPadding(0.0)
         self.camera_image = pg.ImageItem()
@@ -122,11 +159,19 @@ class TrainView(ViewBase):
         target.setData(y=data)
 
     def _set_active_button(self, button, active: bool):
-        style = "background-color: rgb(0, 85, 255); color: white;" if active else "background-color: grey; color: white;"
+        style = (
+            "background-color: rgb(0, 85, 255); color: white;"
+            if active
+            else "background-color: grey; color: white;"
+        )
         button.setStyleSheet(style)
 
     def _set_button_enabled(self, widget, enabled: bool, active: bool | None = None):
         widget.setEnabled(enabled)
         if active is not None:
-            style = "background-color: rgb(0, 85, 255);" if active else "background-color: grey; color: white;"
+            style = (
+                "background-color: rgb(0, 85, 255);"
+                if active
+                else "background-color: grey; color: white;"
+            )
             widget.setStyleSheet(style)

@@ -57,7 +57,10 @@ class ViewBase(QWidget):
     def _center_dialog(self, dialog: QMessageBox) -> None:
         parent_center = self.mapToGlobal(self.rect().center())
         dialog.adjustSize()
-        dialog.move(parent_center.x() - dialog.width() // 2, parent_center.y() - dialog.height() // 2)
+        dialog.move(
+            parent_center.x() - dialog.width() // 2,
+            parent_center.y() - dialog.height() // 2,
+        )
 
     def save_file_dialog(self, file_name: str) -> Optional[str]:
         file_path, _ = QFileDialog.getSaveFileName(
@@ -84,7 +87,9 @@ class ViewBase(QWidget):
         """ビュー上のボタンが押されたらシグナルを送出する。"""
         for btn in self.findChildren(QPushButton):
             name = btn.objectName()
-            btn.clicked.connect(lambda _=False, n=name, b=btn: self.signal.emit(n, b, "clicked", None))
+            btn.clicked.connect(
+                lambda _=False, n=name, b=btn: self.signal.emit(n, b, "clicked", None)
+            )
 
     def trigger_button_click(self, button, delay_ms: int = 0) -> None:
         QTimer.singleShot(delay_ms, button.click)
