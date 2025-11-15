@@ -2,7 +2,7 @@ from PyQt5.QtCore import QObject, QTimer, pyqtSignal
 
 
 class Timer(QObject):
-    """Thin wrapper that exposes a Qt signal at the requested FPS."""
+    """指定したFPSでQtシグナルを発火させる薄いラッパー。"""
 
     signal = pyqtSignal()
 

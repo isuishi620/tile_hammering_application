@@ -15,7 +15,7 @@ from app.util.trigger import Trigger
 from app.util.window import Window
 
 class Model(ModelBase):
-    """Central application state shared across every controller."""
+    """全コントローラーで共有するアプリケーション状態。"""
 
     trigger_signal = pyqtSignal()
     rub_progress = pyqtSignal(float)
@@ -24,7 +24,7 @@ class Model(ModelBase):
     def __init__(self):
         super().__init__()
 
-        # Trigger slider (percentage based)
+        # トリガースライダー（パーセンテージ基準）
         self.trig_level_min: int = 0
         self.trig_level_max: int = 100
         self.trig_level_val: int = 50
@@ -32,7 +32,7 @@ class Model(ModelBase):
         self.threshold_max: float = 20.0
         self._trigger_threshold: float = 0.0
 
-        # Data collection targets
+        # データ収集の目標値
         self.tap_train_target_count: int = 30
         self.tap_threshold_target_count: int = 30
         self.rub_train_duration_sec: float = 10
@@ -41,7 +41,7 @@ class Model(ModelBase):
         self._rub_train_elapsed: float = 0.0
         self._rub_th_elapsed: float = 0.0
 
-        # Audio/video streaming defaults
+        # 音声/映像ストリーミングの初期値
         self.fps: int = 30
         self.timer = Timer(self.fps)
         self.audio_is_stream: bool = False
@@ -60,7 +60,7 @@ class Model(ModelBase):
         self.audio = Read(self)
         self.camera = self._init_camera()
 
-        # Pipeline configuration
+        # パイプライン設定
         self.bandpass_min_hz: int = 300
         self.bandpass_max_hz: int = 16000
         self.bandpass_pass_ripple_db: int = 3
@@ -73,7 +73,7 @@ class Model(ModelBase):
         self.mel_min_hz: int = 1000
         self.mel_max_hz: int = 16000
 
-        # Trigger and inference pipelines
+        # トリガーと推論パイプライン
         self.trigger = Trigger(self)
         self.trigger_is_active: bool = False
         self._trigger_data = np.array([])
@@ -94,14 +94,14 @@ class Model(ModelBase):
         self.rub_anomaly_scores: list = []
         self.rub_anomaly_history_size: int = 50
 
-        # Data buffers
+        # データバッファ
         self.trained: bool = False
         self._train_data = np.empty((0, 0))
         self._threshold_data = np.empty((0, 0))
         self.thresholded: bool = False
         self._anomaly_threshold = None
 
-        # Rub specific state
+        # 擦り専用の状態
         self.rub_pretrained: bool = False
         self.rub_trained: bool = False
 
@@ -303,8 +303,8 @@ class Model(ModelBase):
     def camera_data(self):
         _, frame = self.camera.read()
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # 霆ｸ繧貞・繧梧崛縺医ｋ: (height, width, ch) -> (width, height, ch)
-        # (Y, X, 濶ｲ) 縺九ｉ (X, Y, 濶ｲ) 縺ｸ螟画鋤
+        # 軸を入れ替える: (height, width, ch) -> (width, height, ch)
+        # (Y, X, 色) から (X, Y, 色) へ変換する
         frame_transposed = frame_rgb.transpose((1, 0, 2))
         return frame_transposed
 

@@ -7,7 +7,7 @@ from PyQt5.QtCore import QObject
 
 
 class Read(QObject):
-    """Manages an input audio stream and exposes the captured samples to the model."""
+    """入力音声ストリームを管理し、取得サンプルをモデルへ渡す。"""
 
     def __init__(self, model):
         super().__init__()
@@ -19,7 +19,7 @@ class Read(QObject):
         self._configure_defaults()
 
     def _configure_defaults(self) -> None:
-        """Reset the sounddevice backend and configure sane defaults."""
+        """sounddeviceをリセットして基本的な設定を行う。"""
         self.reset()
         sd.default.samplerate = self.model.sample_rate
         sd.default.dtype = self.model.dtype

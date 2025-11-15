@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 
 class Window(Enum):
-    """Logical windows managed by the stacked widget router."""
+    """スタックウィジェットのルーターで扱う論理的な画面列挙。"""
 
     MENU = auto()
     TRAIN = auto()

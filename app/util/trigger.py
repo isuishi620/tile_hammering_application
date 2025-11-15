@@ -7,7 +7,7 @@ from PyQt5.QtCore import QObject
 
 
 class Trigger(QObject):
-    """Utility that extracts audio frames when the configured height is exceeded."""
+    """設定した閾値を超えたときの音声フレームを切り出すユーティリティ。"""
 
     def __init__(self, model):
         super().__init__()
@@ -36,7 +36,7 @@ class Trigger(QObject):
         self.model.trigger_is_active = False
 
     # ------------------------------------------------------------------ #
-    # Internals
+    # 内部処理
     # ------------------------------------------------------------------ #
     def _buffer_segments(self) -> Sequence[np.ndarray]:
         buffer_data = getattr(self.model, "_buffer_data", None)
@@ -79,7 +79,7 @@ class Trigger(QObject):
         return data[start:end]
 
     # ------------------------------------------------------------------ #
-    # Convenience properties
+    # 便利プロパティ
     # ------------------------------------------------------------------ #
     @property
     def is_active(self) -> bool:

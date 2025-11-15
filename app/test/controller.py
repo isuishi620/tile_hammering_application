@@ -226,7 +226,7 @@ class TestController(ControllerBase):
             self.save_jpg(anomaly)
 
     def get_folder_path(self):
-        """Allow the operator to pick (or create) a directory for captured files."""
+        """撮影ファイル用フォルダーを選択または作成できるようにする。"""
         dialog = QFileDialog(self.view)
         dialog.setFileMode(QFileDialog.Directory)
         dialog.setOption(QFileDialog.ShowDirsOnly, True)
@@ -281,7 +281,7 @@ class TestController(ControllerBase):
             self.view.error(f"Failed to save snapshot to {unique_path}.")
 
 def get_unique_filepath(filepath_str: str) -> str:
-    """Return a unique file path, appending an index if the file already exists."""
+    """既存ファイルがあれば番号を付けて一意なパスを返す。"""
     path = Path(filepath_str)
     if not path.exists():
         return str(path)

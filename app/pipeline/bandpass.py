@@ -14,8 +14,8 @@ class BandPassFilter(BaseEstimator, TransformerMixin):
         wp = fp / fn
         ws = fs / fn
         N, Wn = signal.buttord(wp, ws, self.g_pass, self.g_stop)
-        # バターワースでGainを渡すことはしない。次数とカットオフで決まる。
-        # LPFとHPFをわけてもいい？Nの数はわかっていたほうがいい。
+        # バターワースではゲインを触らず、次数とカットオフで決める
+        # LPFとHPFを分けるにしてもNの数は把握しておきたい
         b, a = signal.butter(N, Wn, "band")
         return b, a
 

@@ -4,7 +4,7 @@ from app.base.view import ViewBase
 
 
 class MenuView(ViewBase):
-    """Simple view that only needs to configure button/label text."""
+    """ボタンとラベルの文言を整えるだけのシンプルなビュー。"""
 
     def __init__(self, ui_path: str):
         super().__init__(ui_path)

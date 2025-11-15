@@ -14,7 +14,7 @@ class ShortTimeFourierTransform(BaseEstimator, TransformerMixin):
         return self._stft_any(X)
 
     def _stft_one(self, x):
-        """Apply STFT, falling back to zero-padded FFT for very short frames."""
+        """短いフレームではゼロ詰めFFTへ切り替えながらSTFTを適用する。"""
         x = np.asarray(x).astype(np.float32)
         n_fft = self.model.fft_size
         fs = self.model.sample_rate

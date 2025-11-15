@@ -26,7 +26,7 @@ class TrainView(ViewBase):
             self.threshold_line.setValue(y)
 
     def _connect_sliders(self) -> None:
-        """Emit the slider name/value whenever it changes."""
+        """スライダーが変化したら名前と値をシグナルで渡す。"""
         for slider in self.findChildren(QSlider):
             name = slider.objectName()
             slider.valueChanged.connect(lambda v, n=name, s=slider: self.signal.emit(n, s, "valueChanged", v))
@@ -36,7 +36,7 @@ class TrainView(ViewBase):
         self.verticalSlider_TrigLevel.setValue(value)
 
     def show_tapping_mode(self, trained: bool, thresholded: bool):
-        """Highlight tapping controls and dim rub controls."""
+        """タップ用の操作を強調し、擦り用の操作を控えめにする。"""
         self._set_active_button(self.pushButton_SetTap, active=True)
         self._set_active_button(self.pushButton_SetRub, active=False)
         self._set_button_enabled(self.pushButton_TrigLevel, enabled=True, active=True)
@@ -57,7 +57,7 @@ class TrainView(ViewBase):
         self.set_rub_status(self.label_RubFinish.text(), background="grey")
 
     def show_rub_mode(self, rub_pretrained: bool):
-        """Highlight rub controls and disable tapping controls."""
+        """擦り用の操作を強調し、タップ用の操作を無効化する。"""
         self._set_active_button(self.pushButton_SetTap, active=False)
         self._set_button_enabled(self.pushButton_TrigLevel, enabled=False, active=False)
         self._set_button_enabled(self.verticalSlider_TrigLevel, enabled=False, active=False)

@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox, QPushButton, QWidget
 
 
 class ViewBase(QWidget):
-    """Common utilities shared across every view."""
+    """全てのビューで共通利用するユーティリティ群。"""
 
     signal = pyqtSignal(str, object, str, object)
 
@@ -19,7 +19,7 @@ class ViewBase(QWidget):
         self._connect_buttons()
 
     # ------------------------------------------------------------------ #
-    # Dialog helpers
+    # ダイアログ関連の補助処理
     # ------------------------------------------------------------------ #
     def error(self, error: str) -> None:
         dialog = QMessageBox(self)
@@ -78,10 +78,10 @@ class ViewBase(QWidget):
         return file_path or None
 
     # ------------------------------------------------------------------ #
-    # UI helpers
+    # UI向けの補助処理
     # ------------------------------------------------------------------ #
     def _connect_buttons(self) -> None:
-        """Emit a signal whenever any button on the view is clicked."""
+        """ビュー上のボタンが押されたらシグナルを送出する。"""
         for btn in self.findChildren(QPushButton):
             name = btn.objectName()
             btn.clicked.connect(lambda _=False, n=name, b=btn: self.signal.emit(n, b, "clicked", None))

@@ -14,7 +14,7 @@ class RubPhase(Enum):
 
 @dataclass
 class RubSession:
-    """State container that manages a single rub training session."""
+    """単一の擦りトレーニングセッションを管理する状態コンテナー。"""
 
     train_time: float
     data: List[np.ndarray] = field(default_factory=list)
@@ -25,7 +25,7 @@ class RubSession:
     phase: Optional[RubPhase] = None
 
     def start(self, now: float, phase: RubPhase) -> None:
-        """Begin collecting rub frames for a given phase."""
+        """指定フェーズの擦りフレーム収集を開始する。"""
         self.data.clear()
         self.counting_time = 0.0
         self.collecting = True
@@ -34,13 +34,13 @@ class RubSession:
         self.phase = phase
 
     def stop(self) -> None:
-        """Stop collecting frames."""
+        """フレーム収集を停止する。"""
         self.collecting = False
         self.start_ts = None
         self.end_ts = None
 
     def append_frame(self, frame: np.ndarray, frames: int, sample_rate: int) -> float:
-        """Store a frame captured from the microphone."""
+        """マイクから取得したフレームを保存する。"""
         self.data.append(frame.copy())
         self.counting_time += frames / float(sample_rate)
         return self.counting_time

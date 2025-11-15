@@ -92,7 +92,7 @@ class TrainController(ControllerBase):
         pass
 
     def on_verticalSlider_TrigLevel_valueChanged(self, _name, _widget, _event, value):
-        """Handle slider updates from the UI."""
+        """UIのスライダー更新を処理する。"""
         self.model.trig_level_val = value
         self.model.trigger_threshold = self.model.trig_level2th()
         self.view.set_threshold(self.model.trigger_threshold)        

@@ -13,7 +13,7 @@ Handler = Callable[..., None]
 
 
 class ControllerBase(QObject):
-    """Shared behaviour for every window controller."""
+    """各ウィンドウ用コントローラーの共通処理。"""
 
     signal = pyqtSignal(object)
 
@@ -29,7 +29,7 @@ class ControllerBase(QObject):
         self.timeout_methods: List[Callable[[], None]] = []
 
     # ------------------------------------------------------------------ #
-    # View dispatch helpers
+    # ビューシグナルの振り分け補助
     # ------------------------------------------------------------------ #
     def handle_view_signal(
         self,
@@ -38,7 +38,7 @@ class ControllerBase(QObject):
         event: str,
         payload: Any | None = None,
     ) -> None:
-        """Dispatch a signal emitted by the view to the matching handler."""
+        """ビューからのシグナルを対応するハンドラーへ振り分ける。"""
         try:
             for candidate in self._candidate_handlers(name, event):
                 if hasattr(self, candidate):
@@ -46,7 +46,7 @@ class ControllerBase(QObject):
                     self._invoke(handler, name, widget, event, payload)
                     return
             raise NotImplementedError(f"{name}({event}) has no handler")
-        except Exception as exc:  # pragma: no cover - defensive UI path
+        except Exception as exc:  # pragma: no cover - 防御的なUI経路
             self.view.error(str(exc))
 
     def _candidate_handlers(self, name: str, event: str) -> Iterable[str]:
@@ -58,19 +58,19 @@ class ControllerBase(QObject):
         )
 
     def _invoke(self, handler: Handler, name: str, widget: object, event: str, payload: Any) -> None:
-        """Invoke a handler while respecting its declared arity."""
+        """ハンドラーの想定引数数を守って呼び出す。"""
         args = (name, widget, event, payload)
         argc = len(inspect.signature(handler).parameters)
         handler(*args[:argc])
 
     # ------------------------------------------------------------------ #
-    # Trigger handling
+    # トリガー処理
     # ------------------------------------------------------------------ #
     def handle_trigger_signal(self) -> None:
         try:
             for method in list(self.trigger_methods):
                 method()
-        except Exception as exc:  # pragma: no cover - defensive UI path
+        except Exception as exc:  # pragma: no cover - 防御的なUI経路
             self.view.error(str(exc))
 
     def add_trigger_method(self, method: Callable[[], None]) -> None:
@@ -85,7 +85,7 @@ class ControllerBase(QObject):
         self.trigger_methods.clear()
 
     # ------------------------------------------------------------------ #
-    # Timer helpers
+    # タイマー補助
     # ------------------------------------------------------------------ #
     def handle_timer_signal(self) -> None:
         if not self.view.isVisible():
@@ -93,7 +93,7 @@ class ControllerBase(QObject):
         try:
             for method in list(self.timeout_methods):
                 method()
-        except Exception as exc:  # pragma: no cover - defensive UI path
+        except Exception as exc:  # pragma: no cover - 防御的なUI経路
             self.view.error(str(exc))
 
     def add_timeout_method(self, method: Callable[[], None]) -> None:
@@ -108,10 +108,10 @@ class ControllerBase(QObject):
         self.timeout_methods.clear()
 
     # ------------------------------------------------------------------ #
-    # Common start/stop helpers
+    # 共通の開始/停止処理
     # ------------------------------------------------------------------ #
     def start_process(self) -> None:
-        """Start audio/camera processing if available."""
+        """利用可能なら音声/カメラ処理を開始する。"""
         audio = getattr(self.model, "audio", None)
         if audio is not None:
             audio.start()
@@ -119,7 +119,7 @@ class ControllerBase(QObject):
         self.model.camera_is_stream = True
 
     def end_process(self) -> None:
-        """Stop audio/camera processing if available."""
+        """利用可能なら音声/カメラ処理を停止する。"""
         audio = getattr(self.model, "audio", None)
         if audio is not None:
             audio.stop()

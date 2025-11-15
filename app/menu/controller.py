@@ -12,7 +12,7 @@ from app.util.window import Window
 
 
 class MenuController(ControllerBase):
-    """Entry screen controller that handles navigation and saved data loading."""
+    """起動画面での遷移と保存データ読込を担当するコントローラー。"""
 
     def __init__(self, model: ModelBase, view: ViewBase):
         super().__init__(model, view)

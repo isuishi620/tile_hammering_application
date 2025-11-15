@@ -2,7 +2,7 @@ from PyQt5.QtCore import QObject
 
 
 class ModelBase(QObject):
-    """Qt aware base class to allow signal/slot usage inside models."""
+    """モデル内でQtのシグナル/スロットを扱えるようにする基底クラス。"""
 
     def __init__(self):
         super().__init__()

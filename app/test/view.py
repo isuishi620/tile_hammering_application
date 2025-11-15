@@ -24,7 +24,7 @@ class TestView(ViewBase):
         self.camera_image = pg.ImageItem()
         self.camera_viewbox.addItem(self.camera_image)
 
-    # graphicsView_Data
+    # graphicsView_Data の設定
     def _set_graphicsView_Data(self):
         self.anomaly_plot = self.graphicsView_Data.addPlot(row=0, col=0)
         self.graphicsView_Data_2 = self.graphicsView_Data.addPlot(row=0, col=1)
@@ -124,7 +124,7 @@ class TestView(ViewBase):
         if y_max <= y_min:
             y_max = y_min + 1.0
 
-        # Update bar plot range
+        # 棒グラフの表示範囲を更新
         self.graphicsView_Data_2.setYRange(y_min, y_max, padding=0)
 
         low_clamped = np.clip(low, y_min, y_max)

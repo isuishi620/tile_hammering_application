@@ -11,7 +11,7 @@ Route = Tuple[QObject, QWidget]
 
 
 class MainWindow(QWidget):
-    """Simple router that swaps the stacked widget based on Window enum values."""
+    """Window列挙値に合わせてスタックウィジェットを切り替えるシンプルなルーター。"""
 
     def __init__(self):
         super().__init__()
@@ -25,7 +25,7 @@ class MainWindow(QWidget):
         self._current: Optional[Window] = None
 
     def register(self, window: Window, controller: QObject, view: QWidget) -> None:
-        """Associate a window enum with a controller/view pair."""
+        """Window列挙値とコントローラー/ビューを対応付ける。"""
         self._routes[window] = (controller, view)
         if self.stack.indexOf(view) == -1:
             self.stack.addWidget(view)
@@ -37,7 +37,7 @@ class MainWindow(QWidget):
         self.go_to(window)
 
     def handle_window(self, arg) -> None:
-        """Handle signals from controllers requesting a navigation change."""
+        """コントローラーからの画面切り替え要求シグナルを処理する。"""
         if isinstance(arg, tuple) and len(arg) == 2:
             window, payload = arg
             self.go_to(window, payload)
