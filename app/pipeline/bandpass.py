@@ -35,16 +35,16 @@ class BandPassFilter(BaseEstimator, TransformerMixin):
     
     @property
     def f_min(self):
-        return self.model.PL_BPF_f_min
+        return self.model.bandpass_min_hz
 
     @property
     def f_max(self):
-        return self.model.PL_BPF_f_max
+        return self.model.bandpass_max_hz
     
     @property
     def g_pass(self):
-        return self.model.PL_BPF_g_pass
+        return self.model.bandpass_pass_ripple_db
     
     @property
     def g_stop(self):
-        return self.model.PL_BPF_g_stop
+        return self.model.bandpass_stop_ripple_db

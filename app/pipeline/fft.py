@@ -31,11 +31,11 @@ class FastFourierTransform(BaseEstimator, TransformerMixin):
     
     @property
     def n_fft(self):
-        return self.model.PL_FFT_n_fft
+        return self.model.fft_size
     
     @property
     def power(self):
-        return self.model.PL_FFT_power
+        return self.model.fft_power
     
     @property
     def f_range(self):

@@ -124,12 +124,11 @@ class TestController(ControllerBase):
             return
         if self.model.audio_is_stream and self.model.current_window == Window.TEST:
             _trigger_data = self.model.trigger_data
-            self.model.test_data = _trigger_data
             anomaly = self.model.pipeline.transform(_trigger_data)[0]
-            self.model.test_anomaly = anomaly
+            self.model.record_test_anomaly(anomaly)
 
             self.view.plot_anomaly_scatter(
-                                self.model.test_anomaly,
+                                self.model.test_anomalies,
                                 self.model.anomaly_threshold,
                                 self.model.display_count
             )
@@ -251,10 +250,6 @@ class TestController(ControllerBase):
         return selected
 
     def make_dir(self, folder_path: Path):
-        folder_path.mkdir(parents=True, exist_ok=True)
-
-    def make_dir(self, folder_path):
-
         folder_path.mkdir(parents=True, exist_ok=True)
     
     

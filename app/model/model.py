@@ -35,8 +35,8 @@ class Model(ModelBase):
         # Data collection targets
         self.tap_train_target_count: int = 30
         self.tap_threshold_target_count: int = 30
-        self.rub_train_duration_sec: float = 3
-        self.rub_threshold_duration_sec: float = 3
+        self.rub_train_duration_sec: float = 10
+        self.rub_threshold_duration_sec: float = 10
         self.rub_session = RubSession(train_time=float(self.rub_train_duration_sec))
         self._rub_train_elapsed: float = 0.0
         self._rub_th_elapsed: float = 0.0
@@ -61,24 +61,24 @@ class Model(ModelBase):
         self.camera = self._init_camera()
 
         # Pipeline configuration
-        self.PL_BPF_f_min: int = 300
-        self.PL_BPF_f_max: int = 16000
-        self.PL_BPF_g_pass: int = 3
-        self.PL_BPF_g_stop: int = 40
-        self.PL_FFT_n_fft: int = 4096
-        self.PL_FFT_power: int = 2
-        self.window: str = 'hann'
-        self.noverlap: int = int(self.PL_FFT_n_fft * 0.75)
-        self.PL_MEL_n_mels: int = 40
-        self.PL_MEL_f_min: int = 1000
-        self.PL_MEL_f_max: int = 16000
+        self.bandpass_min_hz: int = 300
+        self.bandpass_max_hz: int = 16000
+        self.bandpass_pass_ripple_db: int = 3
+        self.bandpass_stop_ripple_db: int = 40
+        self.fft_size: int = 4096
+        self.fft_power: int = 2
+        self.fft_window: str = 'hann'
+        self.stft_overlap: int = int(self.fft_size * 0.75)
+        self.mel_bins: int = 40
+        self.mel_min_hz: int = 1000
+        self.mel_max_hz: int = 16000
 
         # Trigger and inference pipelines
         self.trigger = Trigger(self)
         self.trigger_is_active: bool = False
         self._trigger_data = np.array([])
         self.pipeline = melspec_zscore(self)
-        self.n_components: int = 1
+        self.n_components: int = 2
         self.covariance_type: str = 'full'
         self.random_state: int = 42
         self.gmm_pipeline = gmm(self)
@@ -104,38 +104,16 @@ class Model(ModelBase):
         # Rub specific state
         self.rub_pretrained: bool = False
         self.rub_trained: bool = False
-        self.rub_train_data = np.empty((0, 0))
 
         self.current_window: Window = Window.MENU
-        self._test_data = np.empty((0, 0))
-        self._test_anomaly = []
+        self.test_anomalies: list[float] = []
         self.display_count: int = 20
         
-    
-    @property
-    def test_data(self):
-        return self._test_data
-    
-    @test_data.setter
-    def test_data(self, value):
-        value = np.atleast_2d(value)
-        if self._test_data.size == 0:
-            self._test_data = value
-        else:
-            self._test_data = np.vstack((self._test_data, value))
+    def record_test_anomaly(self, value: float) -> None:
+        self.test_anomalies.append(float(value))
 
-    @test_data.deleter
-    def test_data(self):
-        self._test_data = np.empty((0, 0))
-
-    @property
-    def test_anomaly(self):
-        return self._test_anomaly
-        #return np.array(self._test_anomaly)
-    
-    @test_anomaly.setter
-    def test_anomaly(self,value):
-        self._test_anomaly.append(value)
+    def reset_test_anomalies(self) -> None:
+        self.test_anomalies.clear()
 
     @property
     def trigger_threshold(self):

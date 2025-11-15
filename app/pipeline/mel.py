@@ -28,19 +28,19 @@ class Mel(BaseEstimator, TransformerMixin):
     
     @property
     def n_mels(self):
-        return self.model.PL_MEL_n_mels
+        return self.model.mel_bins
     
     @property
     def n_fft(self):
-        return self.model.PL_FFT_n_fft
+        return self.model.fft_size
     
     @property
     def f_min(self):
-        return self.model.PL_MEL_f_min
+        return self.model.mel_min_hz
 
     @property
     def f_max(self):
-        return self.model.PL_MEL_f_max
+        return self.model.mel_max_hz
     
     @property
     def f_range(self):

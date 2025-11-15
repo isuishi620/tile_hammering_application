@@ -39,10 +39,10 @@ class TrainView(ViewBase):
         """Highlight tapping controls and dim rub controls."""
         self._set_active_button(self.pushButton_SetTap, active=True)
         self._set_active_button(self.pushButton_SetRub, active=False)
-        self._set_button_enabled(self.pushButton_TrigLevel, enabled=True)
+        self._set_button_enabled(self.pushButton_TrigLevel, enabled=True, active=True)
         self._set_button_enabled(self.verticalSlider_TrigLevel, enabled=True, active=True)
-        self._set_button_enabled(self.pushButton_TapTrainSampleStart, enabled=True)
-        self._set_button_enabled(self.pushButton_TapTHSampleStart, enabled=trained)
+        self._set_button_enabled(self.pushButton_TapTrainSampleStart, enabled=True, active=True)
+        self._set_button_enabled(self.pushButton_TapTHSampleStart, enabled=trained, active=trained)
 
         if thresholded:
             self.set_lcd(self.lcdNumber_TapTHSampleNumber, self.lcdNumber_TapTHSampleNumber.intValue())
@@ -66,7 +66,7 @@ class TrainView(ViewBase):
         self.label_TapFinish.setStyleSheet("background-color: grey;")
 
         self._set_active_button(self.pushButton_SetRub, active=True)
-        self._set_button_enabled(self.pushButton_RubTrainSampleStart, enabled=True)
+        self._set_button_enabled(self.pushButton_RubTrainSampleStart, enabled=True, active=True)
         self.set_rub_threshold_button_enabled(rub_pretrained)
 
     def set_start_test_enabled(self, enabled: bool):
@@ -75,7 +75,7 @@ class TrainView(ViewBase):
         self.pushButton_StartTest.setStyleSheet(style)
 
     def set_rub_threshold_button_enabled(self, enabled: bool):
-        self._set_button_enabled(self.pushButton_RubTHSampleStart, enabled=enabled)
+        self._set_button_enabled(self.pushButton_RubTHSampleStart, enabled=enabled, active=enabled)
 
     def set_rub_status(self, text: str, text_color: str = "white", background: str = "rgb(0, 85, 255)"):
         self.label_RubFinish.setText(text)
