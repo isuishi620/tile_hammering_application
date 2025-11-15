@@ -7,11 +7,11 @@ import numpy as np
 from PyQt5.QtCore import pyqtSignal
 
 from app.base.model import ModelBase
+from app.model.read import Read
 from app.model.rub import RubPhase, RubSession
+from app.model.timer import Timer
+from app.model.trigger import Trigger
 from app.pipeline.pipeline import gmm, melspec_zscore
-from app.util.read import Read
-from app.util.timer import Timer
-from app.util.trigger import Trigger
 from app.util.window import Window
 
 
