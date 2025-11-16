@@ -168,6 +168,10 @@ class TrainView(ViewBase):
 
     def _set_button_enabled(self, widget, enabled: bool, active: bool | None = None):
         widget.setEnabled(enabled)
+        if isinstance(widget, QSlider):
+            # The slider's stylesheet is defined in the .ui file to keep the handle thick.
+            # Overriding it here would drop that customization, so bail out early.
+            return
         if active is not None:
             style = (
                 "background-color: rgb(0, 85, 255);"
