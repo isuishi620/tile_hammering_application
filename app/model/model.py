@@ -62,6 +62,7 @@ class Model(ModelBase):
         self.beep_duration_sec: float = 0.1
         self.beep_frequency_hz: float = 1200.0
         self.beep_volume: float = 0.2
+        self.beep_envelope_ratio: float = 0.2
         self.beep_waveform = self._generate_beep_waveform()
 
         # パイプライン設定
@@ -343,6 +344,12 @@ class Model(ModelBase):
         samples = max(1, int(self.sample_rate * self.beep_duration_sec))
         t = np.linspace(0.0, self.beep_duration_sec, samples, endpoint=False)
         waveform = self.beep_volume * np.sin(2.0 * np.pi * self.beep_frequency_hz * t)
+        envelope_samples = max(1, int(samples * self.beep_envelope_ratio))
+        envelope = np.ones(samples, dtype=np.float32)
+        fade = np.linspace(0.0, 1.0, envelope_samples, endpoint=True, dtype=np.float32)
+        envelope[:envelope_samples] = fade
+        envelope[-envelope_samples:] = fade[::-1]
+        waveform *= envelope
         return waveform.astype(np.float32)
 
     @property

@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
+from time import monotonic
 
 import sounddevice as sd
 from PyQt5.QtCore import QTimer
@@ -26,6 +27,8 @@ class TestController(ControllerBase):
         self.view = view
 
         self._beep_is_playing: bool = False
+        self.anomaly_cooldown_sec: float = 1.0
+        self._anomaly_suppressed_until: float = 0.0
 
         self.add_timeout_method(self.model.trigger.trigger)
         self.model.timer.signal.connect(self.handle_camera)
@@ -123,6 +126,8 @@ class TestController(ControllerBase):
         if not self.is_tapping_mode:
             return
         if self.model.audio_is_stream and self.model.current_window == Window.TEST:
+            if self._is_anomaly_suppressed():
+                return
             _trigger_data = self.model.trigger_data
             anomaly = self.model.pipeline.transform(_trigger_data)[0]
             self.model.record_test_anomaly(anomaly)
@@ -214,6 +219,8 @@ class TestController(ControllerBase):
             or not self.model.rub_trained
         ):
             return
+        if self._is_anomaly_suppressed():
+            return
         block = getattr(self.model, "block_data", None)
         if block is None or getattr(block, "size", 0) == 0:
             return
@@ -295,6 +302,7 @@ class TestController(ControllerBase):
         if self._beep_is_playing:
             return
         self._beep_is_playing = True
+        self._start_anomaly_cooldown()
         try:
             self.save_jpg(anomaly)
         except Exception as exc:
@@ -319,6 +327,12 @@ class TestController(ControllerBase):
 
     def _finish_beep(self) -> None:
         self._beep_is_playing = False
+
+    def _start_anomaly_cooldown(self) -> None:
+        self._anomaly_suppressed_until = monotonic() + self.anomaly_cooldown_sec
+
+    def _is_anomaly_suppressed(self) -> bool:
+        return monotonic() < self._anomaly_suppressed_until
 
 
 
